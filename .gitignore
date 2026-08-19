@@ -1,0 +1,20 @@
+# python virtual environment
+.venv/
+__pycache__/
+
+# raw data and output arrays
+*.npz
+*.npy
+
+# generated output images and videos
+*.png
+*.mp4
+*.gif
+*.tiff
+
+# WSL Zone.Identifier files
+*:Zone.Identifier
+
+# specific project output directories
+analysis_output/
+output_fish_trajectories/

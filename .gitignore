@@ -15,6 +15,9 @@ __pycache__/
 # WSL Zone.Identifier files
 *:Zone.Identifier
 
+# large backup files
+*.zip
+
 # specific project output directories
 analysis_output/
 output_fish_trajectories/

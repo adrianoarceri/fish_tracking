@@ -13,7 +13,7 @@ __pycache__/
 *.tiff
 
 # WSL Zone.Identifier files
-*:Zone.Identifier
+*Zone.Identifier
 
 # large backup files
 *.zip

@@ -17,19 +17,29 @@ def analyze_fish_trajectories(
     output_folder="output_fish_trajectories",
     grid_step=0.75,
     dt=1.0,
-    tracking_mode="nearest",
-    make_video=True
+    tracking_mode="velocity",
+    make_video=True,
+    search_range=20.0,
+    memory=5,
+    velocity_smoothing=0.5,
+    min_component_points=10,
 ):
     output_folder = Path(output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
 
     # costruzione delle traiettorie dalla cartella recon
-    trajectories, frame_files = build_trajectories(
+    trajectories, frame_files, tracking_diagnostics = build_trajectories(
         recon_folder=recon_folder,
         n_fish=n_fish,
         grid_step=grid_step,
         tracking_mode=tracking_mode,
-        save_folder=output_folder
+        save_folder=output_folder,
+        dt=dt,
+        max_displacement=search_range,
+        max_gap_frames=memory,
+        velocity_smoothing=velocity_smoothing,
+        min_component_points=min_component_points,
+        return_diagnostics=True,
     )
 
     frame_times = np.arange(trajectories.shape[0]) * dt
@@ -248,6 +258,7 @@ def analyze_fish_trajectories(
 
     return {
         "trajectories": trajectories,
+        "tracking_diagnostics": tracking_diagnostics,
         "frame_files": frame_files,
         "frame_times": frame_times,
         "velocity_results": velocity_results,

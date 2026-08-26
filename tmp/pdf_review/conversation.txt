@@ -1,0 +1,4045 @@
+                               These scripts are intended to provide trajectory
+                               reconstructions for fish tracking, starting from npz files. The
+                               README file provides an explanation of what they are
+                               supposed to do. But I'm facing severe problems.
+
+                               Current technical problems and tracking errors
+
+
+
+
+                               Mostra di più
+
+I reviewed the five scripts together with the README and the reported output. The NaN
+problem is not an isolated plotting problem: the current trackpy implementation
+produces incomplete trajectories, and the rest of the pipeline assumes trajectories
+are complete. Consequently, one missing value propagates into essentially every metric.
+
+There are also deeper tracking issues that explain the identity swaps and fragmentation.
+
+1. What is currently going wrong
+
+A. track_with_trackpy() deliberately creates NaNs
+This is the immediate cause.
+
+You initialize:
+
+
+      Python                                                                           Esegui
+
+  final_trajectories = np.full((num_frames, n_fish, 3), np.nan)
+
+
+and then only fill frames where a TrackPy particle exists:
+
+
+      Python                                                                           Esegui
+  final_trajectories[frames, new_idx, :] = coords
+
+
+Therefore, if a track exists from frame 50 to frame 450, frames 0–49 remain NaN .
+
+This is actually correct behavior for a missing observation. The problem is that the rest
+of the code does not handle missing observations correctly.
+
+For example:
+
+
+        Python                                                                      Esegui
+
+  displacements = np.diff(trajectories, axis=0)
+
+
+in metrics.py .
+
+If either coordinate is NaN:
+
+
+  valid position -> NaN position
+
+
+then:
+
+
+  displacement = NaN
+  velocity        = NaN
+  speed           = NaN
+
+
+and then:
+
+
+        Python                                                                      Esegui
+
+  np.mean(speeds, axis=0)
+
+
+returns NaN if even one NaN is present.
+
+The same problem occurs throughout:
+
+
+        Python                                                                      Esegui
+
+  np.mean(z_positions, axis=0)
+  np.mean(z_positions, axis=1)
+  np.mean(z_positions)
+  np.mean(mean_pairwise_distance_per_frame)
+
+
+etc.
+
+So your output
+  Fish 0: nan mm/s
+  ...
+  Distanza media totale: nan mm
+  nan mm
+
+
+is exactly what I would expect from the current implementation.
+
+
+
+
+2. There is a more serious problem with the TrackPy
+strategy
+This part is particularly problematic:
+
+
+        Python                                                                     Esegui
+
+  valid_trajectories = tp.filter_stubs(linked_df, threshold=15)
+
+
+  particle_counts = valid_trajectories['particle'].value_counts()
+  top_particles = particle_counts.nlargest(n_fish).index.tolist()
+
+
+You have 8 real fish, but TrackPy may generate considerably more than 8 particle IDs
+because of fragmentation.
+
+For example, suppose the actual situation is:
+
+
+  Fish A → particle 0
+            particle 17
+            particle 31
+
+
+  Fish B → particle 1
+            particle 8
+
+
+  ...
+
+
+You then select the eight longest track segments, not the eight biological fish.
+
+Thus:
+
+    top_particles = ... nlargest(n_fish)
+
+
+does not mean "find the eight fish".
+
+It means:
+
+
+   "find the eight longest TrackPy trajectories."
+Those are not necessarily equivalent.
+
+This can produce both:
+
+    missing initial/final portions;
+    two TrackPy trajectories belonging to the same fish;
+    omission of another actual fish.
+
+That is a fundamental flaw in the current reconstruction strategy.
+
+
+
+
+3. filter_stubs() is also conceptually wrong for your
+situation
+You currently have:
+
+
+      Python                                                                      Esegui
+
+  tp.filter_stubs(linked_df, threshold=15)
+
+
+A 15-frame threshold means that any trajectory shorter than 15 frames is discarded.
+
+But you are trying to reconstruct individual fish trajectories over the entire experiment,
+not simply detect long-lived TrackPy particles.
+
+If a fish disappears temporarily and TrackPy creates:
+
+
+  track 12: frames 0–200
+  track 31: frames 201–250
+  track 47: frames 251–450
+
+
+you want these potentially treated as one biological trajectory.
+
+filter_stubs() does not solve that problem.
+
+
+
+
+4. I would not solve this by interpolating missing
+positions
+Your observation about interpolation is correct.
+
+Suppose:
+
+
+  t=100        position = 20
+  t=101        missing
+  t=102     position = 24
+
+
+Linear interpolation gives:
+
+
+  t=101 = 22
+
+
+which creates an apparently observed movement:
+
+
+  20 → 22 → 24
+
+
+even though the fish was not actually observed at t=101 .
+
+This is especially problematic for:
+
+    instantaneous velocity;
+    acceleration;
+    step-length distributions;
+    velocity autocorrelation;
+    polarization.
+
+So I would not use interpolation as the primary solution.
+
+The correct distinction should be:
+
+Tracking layer
+
+   "I don't know where the fish was."
+
+→ NaN
+
+Analysis layer
+
+   "Ignore this interval when calculating a metric."
+
+→ finite-value masking.
+
+Visualization layer
+
+   "Don't draw through missing observations."
+
+→ handle NaNs explicitly.
+
+This is much more scientifically defensible.
+
+
+
+
+5. But the actual tracker should be changed too
+I would not continue trying to make the current TrackPy implementation the central tracker.
+
+Your original nearest-neighbor algorithm is:
+
+
+  position at t
+           ↓
+  closest position at t+1
+
+
+and TrackPy improves this by allowing linking across missing frames, but neither approach
+explicitly models the fish's motion.
+
+For zebrafish, a much better intermediate solution is:
+
+Constant-velocity prediction + Hungarian assignment
+Instead of predicting:
+
+
+  x_pred(t+1) = x(t)
+
+
+predict:
+
+
+  x_pred(t+1) = x(t) + v(t) Δt
+
+
+where
+
+
+  v(t) = [x(t)-x(t-1)] / Δt
+
+
+Then calculate the assignment cost between predicted positions and detections.
+
+Conceptually:
+
+
+                previous
+                position
+                    │
+                    │
+                previous
+                velocity
+                    │
+                    ▼
+           predicted position
+                    │
+                    │
+                    ▼
+           ┌──────────────────┐
+           │ Hungarian          │
+           │ assignment         │
+           └──────────────────┘
+                    │
+                         ▼
+               current fish
+               identities
+
+
+This gives the tracker kinematic memory.
+
+If two fish cross, this is much less likely to produce the classic nearest-neighbor swap.
+
+
+
+
+6. An even better solution: Kalman filtering
+If the trajectories remain problematic after constant-velocity prediction, I would move to a
+Kalman filter.
+
+The state would be something like:
+
+                                              st = [x, y, z, vx , vy , vz ]T
+                                                ​                 ​   ​           ​
+
+
+
+
+with a constant-velocity transition:
+
+                              1       0        0        Δt 0 0
+                              0       1        0        0 Δt 0
+                              0       0        1        0  0 Δt
+                 st+1 =                                                           st + process noise.
+                              0       0        0        1  0 0
+                     ​        ​   ​       ​         ​    ​    ​           ​   ​       ​
+
+
+
+
+                              0       0        0        0  1 0
+                              0       0        0        0  0 1
+
+Then the Hungarian algorithm associates detections to predicted states.
+
+This is much closer to what you actually need:
+
+
+   identity = spatial information + temporal/kinematic information
+
+rather than merely spatial proximity.
+
+I would, however, start with the constant-velocity Hungarian tracker because it is simpler
+and easier to validate.
+
+
+
+
+7. There is also a major parameter issue in main.py
+You currently have:
+
+
+      Python                                                                                            Esegui
+
+  dt=1/15
+which is presumably correct for 15 fps.
+
+But:
+
+
+        Python                                                                      Esegui
+
+  search_range=20.0
+
+
+is interpreted after:
+
+
+        Python                                                                      Esegui
+
+  coms = coms * grid_step
+
+
+with:
+
+
+        Python                                                                      Esegui
+
+  grid_step = 0.75
+
+
+so TrackPy is operating in millimetres.
+
+Therefore:
+
+
+  search_range = 20 mm/frame
+
+
+At 15 fps this corresponds to a displacement of:
+
+                                 20 × 15 = 300 mm/s.
+
+That is an enormous allowed displacement for a zebrafish.
+
+Unless your reconstruction really has fish moving at hundreds of mm/s, 20.0 is probably
+far too permissive.
+
+And a large search radius makes identity swaps more likely because TrackPy has many
+plausible candidate matches.
+
+I would not choose this number arbitrarily, though. It should be derived from the actual
+observed frame-to-frame displacement distribution.
+
+
+
+
+8. There is another bug in the current metrics
+This function:
+      Python                                                              Esegui
+
+  compute_z_zone_times()
+
+
+contains:
+
+
+      Python                                                              Esegui
+
+  z_min = np.min(z)
+  z_max = np.max(z)
+
+
+If z contains even one NaN:
+
+
+      Python                                                              Esegui
+
+  np.min(z)
+
+
+returns NaN.
+
+Consequently:
+
+
+      Python                                                              Esegui
+
+  edges = np.linspace(z_min, z_max, 5)
+
+
+becomes essentially:
+
+
+      Python                                                              Esegui
+
+  [NaN, NaN, NaN, NaN, NaN]
+
+
+and the entire zone analysis becomes invalid.
+
+This should use:
+
+
+      Python                                                              Esegui
+
+  np.nanmin(z)
+  np.nanmax(z)
+
+
+and the time calculation should explicitly ignore missing observations.
+
+
+
+
+9. Pairwise distances have the same problem
+You currently do:
+        Python                                                                    Esegui
+
+  condensed = pdist(trajectories[t])
+
+
+If one fish is missing:
+
+
+  trajectories[t]
+  =
+  [
+   fish 0
+   fish 1
+   NaN
+   fish 3
+   ...
+  ]
+
+
+then pdist() produces NaNs for all distances involving that fish.
+
+Then:
+
+
+        Python                                                                    Esegui
+
+  np.mean(condensed)
+
+
+becomes NaN.
+
+Instead, the analysis should calculate distances only among fish that are actually observed
+in that frame.
+
+For example:
+
+
+  frame t:
+
+
+  fish 0 ✓
+  fish 1 ✓
+  fish 2 ✗
+  fish 3 ✓
+  fish 4 ✓
+
+
+  → calculate distances among 0,1,3,4
+  → ignore fish 2
+
+
+That is preferable to either:
+      interpolation;
+      filling with zeros;
+      dropping the entire frame.
+10. The plotting code is already partly prepared for
+NaNs
+Interestingly, make_trajectory_video() already contains:
+
+
+      Python                                                                        Esegui
+
+  valid_mask = ~np.isnan(fish_traj).any(axis=1)
+  valid_traj = fish_traj[valid_mask]
+
+
+So the animation code was partially modified to accommodate missing trajectories.
+
+However, plot_collective_trajectories() and plot_single_fish_trajectory() do
+not explicitly handle them:
+
+
+      Python                                                                        Esegui
+
+  ax.plot(
+      fish_traj[:, 0],
+      fish_traj[:, 1],
+      fish_traj[:, 2]
+  )
+
+
+Matplotlib can normally handle NaNs in a line, but your:
+
+
+      Python                                                                        Esegui
+
+  set_axes_equal_3d(ax)
+
+
+can become problematic if the axis limits themselves were never established properly
+because there are too few finite points.
+
+More importantly, the animation currently does:
+
+
+      Python                                                                        Esegui
+
+  x_min, y_min, z_min = np.nanmin(...)
+  x_max, y_max, z_max = np.nanmax(...)
+
+
+which works provided there is at least one finite value in every dimension.
+
+So I would add an explicit validation step rather than allowing a Matplotlib exception to
+occur later.
+11. I would restructure the pipeline into three separate
+concepts
+The clean architecture should be:
+
+
+  NPZ detections
+        │
+        ▼
+  3D center-of-mass extraction
+        │
+        ▼
+  physical coordinates (mm)
+        │
+        ▼
+  IDENTITY TRACKING
+        │
+        │      kinematic prediction
+        │      + Hungarian assignment
+        │      + missing observations
+        ▼
+  trajectories
+  (shape = frames × fish × xyz)
+        │
+        ├───────────────┐
+        ▼                 ▼
+  visualization         metrics
+                          │
+                          ▼
+                  finite-value-aware
+                      statistics
+
+
+The important point is that tracking and missing-data handling should not be confused
+with interpolation.
+
+
+
+
+12. What I recommend changing
+I would make these changes in this order.
+
+Phase 1 — Fix the immediate NaN catastrophe
+Modify all metrics so that missing observations do not contaminate the entire dataset.
+
+For example:
+
+
+      Python                                                                       Esegui
+
+  np.mean(values)
+should often become:
+
+
+      Python                                                                           Esegui
+
+  np.nanmean(values)
+
+
+but not blindly everywhere.
+
+For pairwise distances and velocities, the better solution is explicit finite masks.
+
+
+
+
+Phase 2 — Replace TrackPy linking
+Replace:
+
+
+      Python                                                                           Esegui
+
+  track_with_trackpy()
+
+
+with a custom:
+
+
+      Python                                                                           Esegui
+
+  track_with_velocity_prediction()
+
+
+using:
+ 1. first frame establishes identities;
+ 2. first two frames estimate velocity;
+ 3. predicted positions are calculated;
+ 4. Hungarian assignment matches detections to predictions;
+ 5. a maximum displacement gate rejects implausible assignments;
+ 6. missing detections can be retained as NaN;
+ 7. velocity is updated only when a valid observation is available.
+
+This gives you kinematic memory without introducing artificial coordinates.
+
+
+
+
+Phase 3 — Validate tracking before calculating metrics
+The pipeline should produce diagnostics such as:
+
+
+  Maximum frame-to-frame displacement
+  Median frame-to-frame displacement
+  95th percentile displacement
+  Number of missing observations
+  Number of identity-assignment failures
+  Number of gated assignments
+
+and, crucially, a plot of trajectories.
+
+You should visually inspect the reconstructed trajectories before trusting any behavioral
+statistic.
+
+
+
+
+13. One important issue with your current
+build_trajectories()
+This:
+
+
+        Python                                                                       Esegui
+
+  data = load_npz(frame_path)[:n_fish]
+
+
+assumes that the first eight arrays in every .npz correspond to the eight fish.
+
+That is fine only if the ordering of objects within every NPZ is meaningful or irrelevant
+because the tracker subsequently reassigns identities.
+
+But because the tracker itself starts from these detections, this is only safe if:
+
+     every object is indeed a fish;
+     there are exactly eight objects;
+     there are no spurious detections;
+     no fish is absent;
+     no fish is split into multiple objects.
+
+The current check:
+
+
+        Python                                                                       Esegui
+
+  if len(data) < n_fish:
+        raise ValueError(...)
+
+
+does not protect against:
+
+
+  10 detections
+
+
+because you simply take:
+
+
+        Python                                                                       Esegui
+  [:8]
+
+
+That could silently discard a real fish.
+
+We should inspect the actual NPZ structure before changing this part.
+
+
+
+
+14. The most important conceptual distinction
+I would use the following policy throughout the project:
+Situation                                       Correct treatment
+
+Fish observed                                   use measured COM
+
+
+Fish temporarily not detected                    NaN
+
+
+Identity assignment uncertain                   flag it
+
+
+Position genuinely missing                      don't fabricate position
+
+
+Velocity across missing frame                    NaN / exclude
+
+
+Pairwise distance involving missing fish        exclude that pair
+
+
+Visualization of missing interval               break trajectory
+
+
+Need continuous state estimate for tracker      predicted state internally, not exported as
+                                                measured position
+
+
+
+This avoids the artificial zero-velocity/flat-line problem you encountered.
+
+
+
+
+15. The current output therefore has two separate failures
+The nan summary does not mean that the tracking necessarily failed completely.
+
+It means:
+
+Failure 1 — Tracking
+TrackPy fragmented the trajectories and your selection method does not reconstruct
+biological fish identities robustly.
+
+Failure 2 — Analysis
+The resulting NaNs are passed directly into functions that use ordinary mean , min ,
+pdist , etc.
+
+
+The second failure turns a partially usable dataset into a completely unusable analysis.
+
+So I would not simply replace np.mean with np.nanmean and declare the problem
+solved. That would hide the underlying tracking problem.
+
+
+
+
+Recommended next step
+The most appropriate fix is to rewrite tracking.py first, implementing a constant-velocity
++ Hungarian tracker with a displacement gate and explicit handling of missing
+observations. Then rewrite the relevant parts of metrics.py to correctly operate on
+incomplete trajectories.
+
+I would leave main.py and most of pipeline.py structurally unchanged.
+
+The resulting tracker can have the same interface:
+
+
+      Python                                                                      Esegui
+
+  trajectories, frame_files = build_trajectories(...)
+
+
+so the rest of the project does not need to be redesigned.
+
+One thing I would not do is continue tuning trackpy 's search_range and memory until
+the output looks better. The current top_particles reconstruction is fundamentally
+mismatched to the biological identity-tracking problem.
+
+
+
+
+                              Could you provide the corrected version of the tracking.py
+                              script?
+
+Yes. Based on the current tracking.py , I would replace the TrackPy implementation
+rather than trying to patch it. The version below uses constant-velocity prediction +
+Hungarian assignment, preserves NaN for genuinely missing observations, and does not
+interpolate trajectories.
+
+
+      Python                                                                      Esegui
+import numpy as np
+import os
+import glob
+from pathlib import Path
+from scipy.spatial.distance import cdist
+from scipy.optimize import linear_sum_assignment
+
+
+
+# ============================================================
+# DATA LOADING
+# ============================================================
+
+
+def load_npz(path):
+   """
+   Load all arrays contained in an NPZ file.
+
+
+   Each array is assumed to contain the 3D point cloud
+   corresponding to one detected fish.
+   """
+   data = np.load(path)
+   return [data[k] for k in data.files]
+
+
+
+def get_coms(data):
+   """
+   Calculate the centre of mass of each detected fish.
+
+
+   Parameters
+   ----------
+   data : list
+         List of arrays containing x, y, z coordinates.
+
+
+   Returns
+   -------
+   np.ndarray
+         Array of shape (n_fish, 3).
+   """
+   centers = []
+
+
+   for fish_points in data:
+         x, y, z = fish_points
+         centers.append([
+              x.mean(),
+              y.mean(),
+              z.mean()
+         ])
+
+
+   return np.asarray(centers, dtype=float)
+
+
+
+# ============================================================
+# TRACKING
+# ============================================================
+
+
+def track_by_nearest_neighbor(all_positions):
+     """
+     Track fish using frame-to-frame nearest-neighbour assignment
+     with the Hungarian algorithm.
+
+
+     This is the original spatial-only tracker and is retained
+     as a baseline/reference method.
+     """
+     num_frames, n_fish, _ = all_positions.shape
+
+
+     trajectories = np.zeros_like(all_positions)
+     trajectories[0] = all_positions[0]
+
+
+     for t in range(1, num_frames):
+
+
+           previous_positions = trajectories[t - 1]
+           current_positions = all_positions[t]
+
+
+           cost_matrix = cdist(
+                previous_positions,
+                current_positions
+           )
+
+
+           row_ind, col_ind = linear_sum_assignment(cost_matrix)
+
+
+           reordered = np.zeros_like(current_positions)
+
+
+           for previous_fish_idx, current_fish_idx in zip(
+                row_ind,
+                col_ind
+           ):
+                reordered[previous_fish_idx] = (
+                    current_positions[current_fish_idx]
+                )
+
+
+           trajectories[t] = reordered
+
+
+     return trajectories
+
+
+
+def track_with_velocity_prediction(
+     all_positions,
+     dt=1.0,
+     max_displacement=20.0,
+     velocity_smoothing=0.5
+):
+     """
+     Track fish using constant-velocity prediction followed by
+     Hungarian assignment.
+The tracker maintains, for every fish:
+
+
+      position
+      velocity
+
+
+At each frame the next position is predicted as:
+
+
+      x_pred = x_previous + v_previous * dt
+
+
+Current detections are then assigned to these predicted
+positions using the Hungarian algorithm.
+
+
+A maximum-displacement gate prevents implausible assignments.
+
+
+Missing detections are represented by NaN. No interpolation
+is performed.
+
+
+Parameters
+----------
+all_positions : np.ndarray
+      Array of shape (num_frames, n_fish, 3).
+
+
+dt : float
+      Time between consecutive frames, in seconds.
+
+
+max_displacement : float
+      Maximum allowed displacement between a predicted position
+      and an observed position, in mm.
+
+
+velocity_smoothing : float
+      Weight given to the newly measured velocity.
+
+
+      1.0 -> use only the new velocity
+      0.0 -> keep the previous velocity
+
+
+      Intermediate values provide simple exponential smoothing.
+
+
+Returns
+-------
+np.ndarray
+      Trajectories of shape (num_frames, n_fish, 3).
+      Missing observations are represented by NaN.
+"""
+
+
+all_positions = np.asarray(all_positions, dtype=float)
+
+
+if all_positions.ndim != 3 or all_positions.shape[2] != 3:
+      raise ValueError(
+          "all_positions must have shape "
+          "(num_frames, n_fish, 3)."
+      )
+if dt <= 0:
+    raise ValueError("dt must be > 0.")
+
+
+if max_displacement <= 0:
+    raise ValueError("max_displacement must be > 0.")
+
+
+if not 0.0 <= velocity_smoothing <= 1.0:
+    raise ValueError(
+        "velocity_smoothing must be between 0 and 1."
+    )
+
+
+num_frames, n_fish, _ = all_positions.shape
+
+
+trajectories = np.full_like(
+    all_positions,
+    np.nan,
+    dtype=float
+)
+
+
+# --------------------------------------------------------
+# Initial frame
+# --------------------------------------------------------
+
+
+trajectories[0] = all_positions[0]
+
+
+# --------------------------------------------------------
+# Initial velocities
+# --------------------------------------------------------
+#
+# Initially velocity is unknown.
+# We therefore start with zero velocity.
+#
+velocities = np.zeros(
+    (n_fish, 3),
+    dtype=float
+)
+
+
+# Track whether each fish currently has a valid position.
+active = np.isfinite(
+    trajectories[0]
+).all(axis=1)
+
+
+# Number of consecutive frames without an observation.
+missing_count = np.zeros(
+    n_fish,
+    dtype=int
+)
+
+
+# --------------------------------------------------------
+# Main tracking loop
+# --------------------------------------------------------
+for t in range(1, num_frames):
+
+
+   current_positions = all_positions[t]
+
+
+   valid_detections = np.isfinite(
+       current_positions
+   ).all(axis=1)
+
+
+   detection_indices = np.flatnonzero(
+       valid_detections
+   )
+
+
+   # ----------------------------------------------------
+   # Build predictions
+   # ----------------------------------------------------
+
+
+   predictions = np.full(
+       (n_fish, 3),
+       np.nan,
+       dtype=float
+   )
+
+
+   for fish_idx in range(n_fish):
+
+
+       previous_position = trajectories[t - 1, fish_idx]
+
+
+       if np.isfinite(previous_position).all():
+
+
+           predictions[fish_idx] = (
+                 previous_position
+                 + velocities[fish_idx] * dt
+           )
+
+
+   # ----------------------------------------------------
+   # Identify fish for which an assignment is possible
+   # ----------------------------------------------------
+
+
+   track_indices = np.flatnonzero(
+       np.isfinite(predictions).all(axis=1)
+   )
+
+
+   if len(track_indices) > 0 and len(detection_indices) > 0:
+
+
+       predicted_positions = predictions[
+           track_indices
+       ]
+
+
+       detections = current_positions[
+           detection_indices
+       ]
+
+
+       cost_matrix = cdist(
+    predicted_positions,
+    detections
+)
+
+
+# ------------------------------------------------
+# Apply maximum-displacement gate
+# ------------------------------------------------
+
+
+gated_cost = cost_matrix.copy()
+
+
+gated_cost[
+    gated_cost > max_displacement
+] = np.inf
+
+
+# Hungarian assignment cannot operate properly if
+# a row/column is entirely infinite.
+#
+# We therefore use a large finite penalty instead.
+large_cost = max_displacement * 1e6
+
+
+assignment_cost = np.where(
+    np.isfinite(gated_cost),
+    gated_cost,
+    large_cost
+)
+
+
+row_ind, col_ind = linear_sum_assignment(
+    assignment_cost
+)
+
+
+# ------------------------------------------------
+# Store valid assignments
+# ------------------------------------------------
+
+
+assigned_tracks = set()
+assigned_detections = set()
+
+
+for row, col in zip(row_ind, col_ind):
+
+
+    distance = cost_matrix[row, col]
+
+
+    # Reject assignments outside the physical gate.
+    if distance > max_displacement:
+        continue
+
+
+    fish_idx = track_indices[row]
+    detection_idx = detection_indices[col]
+
+
+    position = current_positions[
+        detection_idx
+    ]
+        trajectories[
+            t,
+            fish_idx
+        ] = position
+
+
+        assigned_tracks.add(fish_idx)
+        assigned_detections.add(detection_idx)
+
+
+        # ------------------------------------------------
+        # Update velocity
+        # ------------------------------------------------
+
+
+        previous_position = trajectories[
+            t - 1,
+            fish_idx
+        ]
+
+
+        if np.isfinite(previous_position).all():
+
+
+            measured_velocity = (
+                 position - previous_position
+            ) / dt
+
+
+            velocities[fish_idx] = (
+                 velocity_smoothing
+                 * measured_velocity
+                 +
+                 (1.0 - velocity_smoothing)
+                 * velocities[fish_idx]
+            )
+
+
+        missing_count[fish_idx] = 0
+        active[fish_idx] = True
+
+
+   # ------------------------------------------------
+   # Tracks without an accepted assignment
+   # ------------------------------------------------
+
+
+   for fish_idx in track_indices:
+
+
+        if fish_idx not in assigned_tracks:
+
+
+            trajectories[
+                 t,
+                 fish_idx
+            ] = np.nan
+
+
+            missing_count[fish_idx] += 1
+
+
+else:
+
+
+   # No possible assignments.
+               for fish_idx in range(n_fish):
+
+
+                  trajectories[
+                       t,
+                       fish_idx
+                  ] = np.nan
+
+
+                  if active[fish_idx]:
+                       missing_count[fish_idx] += 1
+
+
+           # ----------------------------------------------------
+           # Handle detections that were not assigned
+           # ----------------------------------------------------
+           #
+           # We deliberately do NOT create new tracks here.
+           #
+           # The experiment has a known number of fish and the
+           # purpose of this tracker is to preserve those identities.
+           #
+           # An unassigned detection is therefore simply ignored
+           # for this frame.
+           #
+           # This is preferable to arbitrarily changing identities.
+           # ----------------------------------------------------
+
+
+     return trajectories
+
+
+
+# ============================================================
+# TRAJECTORY CONSTRUCTION
+# ============================================================
+
+
+def build_trajectories(
+     recon_folder=None,
+     n_fish=8,
+     grid_step=0.75,
+     tracking_mode="velocity",
+     save_folder=None,
+     frame_files=None,
+     dt=1.0,
+     max_displacement=20.0,
+     velocity_smoothing=0.5
+):
+     """
+     Load reconstructed fish positions and build trajectories.
+
+
+     Parameters
+     ----------
+     recon_folder : str or Path
+           Folder containing frame-*.npz files.
+
+
+     n_fish : int
+      Expected number of fish.
+
+
+grid_step : float
+      Conversion factor from reconstruction coordinates to mm.
+
+
+tracking_mode : str
+      Available modes:
+
+
+          "order"
+             Keep the original order of detections.
+
+
+          "nearest"
+             Hungarian nearest-neighbour tracking.
+
+
+          "velocity"
+             Constant-velocity prediction +
+             Hungarian assignment.
+
+
+save_folder : str or Path, optional
+      Folder in which to save trajectory arrays.
+
+
+frame_files : list, optional
+      Explicit list of frame files.
+
+
+dt : float
+      Time between consecutive frames, in seconds.
+
+
+max_displacement : float
+      Maximum allowed displacement between predicted and
+      observed position, in mm.
+
+
+velocity_smoothing : float
+      Weight of the newly measured velocity.
+
+
+Returns
+-------
+trajectories : np.ndarray
+      Shape (num_frames, n_fish, 3).
+
+
+frame_files : list
+      Ordered list of input frame files.
+"""
+
+
+# --------------------------------------------------------
+# Find input files
+# --------------------------------------------------------
+
+
+if frame_files is None:
+
+
+      frame_files = sorted(
+          glob.glob(
+             os.path.join(
+                  recon_folder,
+                  "frame-*.npz"
+             )
+        )
+    )
+
+
+if len(frame_files) == 0:
+    raise ValueError(
+        "Nessun file frame-*.npz trovato."
+    )
+
+
+# --------------------------------------------------------
+# Load all COM positions
+# --------------------------------------------------------
+
+
+all_positions = []
+
+
+for frame_path in frame_files:
+
+
+    data = load_npz(frame_path)
+
+
+    if len(data) < n_fish:
+        raise ValueError(
+             f"Nel frame {frame_path} ho trovato "
+             f"solo {len(data)} oggetti, ma "
+             f"n_fish={n_fish}"
+        )
+
+
+    # Keep the first n_fish detections.
+    data = data[:n_fish]
+
+
+    coms = get_coms(data)
+
+
+    # Conversion to millimetres.
+    coms = coms * grid_step
+
+
+    all_positions.append(coms)
+
+
+all_positions = np.asarray(
+    all_positions,
+    dtype=float
+)
+
+
+# --------------------------------------------------------
+# Tracking
+# --------------------------------------------------------
+
+
+if tracking_mode == "order":
+
+
+    trajectories = all_positions.copy()
+
+
+elif tracking_mode == "nearest":
+     trajectories = track_by_nearest_neighbor(
+         all_positions
+     )
+
+
+elif tracking_mode in (
+     "velocity",
+     "constant_velocity"
+):
+
+
+     trajectories = track_with_velocity_prediction(
+         all_positions,
+         dt=dt,
+         max_displacement=max_displacement,
+         velocity_smoothing=velocity_smoothing
+     )
+
+
+else:
+
+
+     raise ValueError(
+         "tracking_mode deve essere "
+         "'order', 'nearest' oppure 'velocity'."
+     )
+
+
+# --------------------------------------------------------
+# Basic diagnostic information
+# --------------------------------------------------------
+
+
+valid = np.isfinite(
+     trajectories
+).all(axis=2)
+
+
+total_positions = trajectories.shape[0] * n_fish
+
+
+valid_positions = np.count_nonzero(valid)
+
+
+missing_positions = (
+     total_positions - valid_positions
+)
+
+
+print("\n================ TRACKING =================")
+
+
+print(
+     f"Frame analizzati: {trajectories.shape[0]}"
+)
+
+
+print(
+     f"Pesci richiesti: {n_fish}"
+)
+
+
+print(
+     f"Posizioni valide: "
+    f"{valid_positions}/{total_positions}"
+)
+
+
+print(
+    f"Posizioni mancanti: "
+    f"{missing_positions}"
+)
+
+
+print(
+    f"Percentuale osservazioni valide: "
+    f"{100 * valid_positions / total_positions:.2f}%"
+)
+
+
+for fish_idx in range(n_fish):
+
+
+    fish_valid = valid[:, fish_idx]
+
+
+    print(
+         f"Fish {fish_idx}: "
+         f"{np.count_nonzero(fish_valid)}/"
+         f"{trajectories.shape[0]} frame validi"
+    )
+
+
+print("============================================\n")
+
+
+# --------------------------------------------------------
+# Save trajectories
+# --------------------------------------------------------
+
+
+if save_folder is not None:
+
+
+    save_folder = Path(save_folder)
+    save_folder.mkdir(
+         parents=True,
+         exist_ok=True
+    )
+
+
+    np.save(
+         save_folder / "all_trajectories.npy",
+         trajectories
+    )
+
+
+    for fish_idx in range(n_fish):
+
+
+         np.save(
+             save_folder /
+             f"fish_{fish_idx:02d}_trajectory.npy",
+             trajectories[:, fish_idx, :]
+         )
+
+
+    np.save(
+         save folder / "frame files.npy",
+One important change in main.py
+With this version, change:
+
+
+      Python                                                                    Esegui
+
+  tracking_mode="trackpy"
+
+
+to:
+
+
+      Python                                                                    Esegui
+
+  tracking_mode="velocity"
+
+
+and pass dt to the tracker through pipeline.py . Your current pipeline.py does not
+pass dt to build_trajectories() , so change that call from:
+
+
+      Python                                                                    Esegui
+
+  trajectories, frame_files = build_trajectories(
+      recon_folder=recon_folder,
+      n_fish=n_fish,
+      grid_step=grid_step,
+      tracking_mode=tracking_mode,
+      save_folder=output_folder,
+      search_range=search_range,
+      memory=memory
+  )
+
+
+to:
+
+
+      Python                                                                    Esegui
+
+  trajectories, frame_files = build_trajectories(
+      recon_folder=recon_folder,
+      n_fish=n_fish,
+      grid_step=grid_step,
+      tracking_mode=tracking_mode,
+      save_folder=output_folder,
+      dt=dt,
+      max_displacement=search_range
+  )
+
+
+You can therefore keep your existing search_range=20.0 initially, although I would not
+assume that 20 mm is appropriate. The next step should be to examine the actual frame-
+to-frame displacement distribution and choose a physically sensible gate.
+
+Important limitation
+This fixes the tracking architecture, but it does not yet fix the NaNs in the metrics. In
+fact, the new tracker intentionally preserves NaNs when a fish cannot be confidently
+assigned. That is desirable.
+
+Your current metrics.py still contains operations such as:
+
+
+      Python                                                                           Esegui
+
+  np.mean(...)
+  np.min(...)
+  pdist(...)
+
+
+that are not NaN-safe. So if you run the entire pipeline immediately after replacing
+tracking.py , you can still obtain nan metrics.
+
+
+The correct sequence is therefore:
+
+ 1. Replace tracking.py with the version above.
+ 2. Run it and inspect the reported number of valid/missing observations and the
+    trajectory plots.
+ 3. Then modify metrics.py so that missing observations are handled statistically rather
+    than interpolated.
+ 4. Only after that assess whether the tracker itself needs further tuning.
+
+Also note that the tracker currently does not create new identities for unassigned
+detections. This is intentional: with a known number of eight fish, it is safer to leave an
+uncertain observation missing than to silently switch the identity of two fish.
+
+
+
+
+                                               ieri 19:14
+
+
+                               "Important limitation
+                               This fixes the tracking architecture, but it does not yet fix
+                               the NaNs in the metrics. In fact, the new tracker
+                               intentionally preserves NaNs when a fish cannot be
+                               confidently assigned. That is desirable.
+
+                               Your current metrics.py still contains operations such as:
+
+
+
+
+                                np.mean(...)
+
+                               Mostra di più
+Yes. The important point is that the updated metrics.py should not interpolate missing
+positions. It should calculate each statistic only from observations that are actually
+available.
+
+I would also make the handling consistent across all metrics:
+
+    velocity: a velocity exists only when both consecutive positions are valid;
+    pairwise distance: a pair contributes only when both fish are observed;
+    MSD: each fish contributes only when both the initial and current positions are valid;
+    nearest-neighbour distance: only observed fish are considered;
+    histograms: NaN/Inf values are excluded;
+    z statistics: missing observations are ignored;
+    z-zone residence time: only observed frames contribute;
+    velocity correlations: only valid velocity pairs contribute.
+
+This version preserves the API expected by your current pipeline.py .
+
+
+      Python                                                                         Esegui
+
+  import numpy as np
+
+
+
+  # ============================================================
+  # GENERAL HELPERS
+  # ============================================================
+
+
+  def _finite_rows(array):
+      """
+      Return a boolean mask identifying rows containing only
+      finite values.
+
+
+      For an array of shape (..., 3), this checks whether all
+      three coordinates are finite.
+      """
+      array = np.asarray(array, dtype=float)
+      return np.isfinite(array).all(axis=-1)
+
+
+
+  def _probability_histogram(values, bins=30):
+      """
+      Compute a probability-density histogram after removing
+      NaN and Inf values.
+      """
+      values = np.asarray(values, dtype=float)
+      values = values[np.isfinite(values)]
+
+
+      if values.size == 0:
+             return np.array([]), np.array([])
+     if np.all(values == values[0]):
+           width = max(abs(values[0]) * 0.05, 1e-12)
+           edges = np.array([
+                values[0] - width,
+                values[0] + width
+           ])
+     else:
+           edges = np.histogram_bin_edges(
+                values,
+                bins=bins
+           )
+
+
+     density, edges = np.histogram(
+           values,
+           bins=edges,
+           density=True
+     )
+
+
+     return density, edges
+
+
+
+# ============================================================
+# VELOCITIES
+# ============================================================
+
+
+def compute_velocities(
+     trajectories,
+     dt=1.0,
+     frame_times=None
+):
+     """
+     Compute frame-to-frame velocities and speeds.
+
+
+     A velocity is calculated only when both positions are valid.
+     If either position is missing, the corresponding velocity
+     and speed are NaN.
+
+
+     Parameters
+     ----------
+     trajectories : np.ndarray
+           Shape (num_frames, n_fish, 3).
+
+
+     dt : float
+           Time between frames.
+
+
+     frame_times : np.ndarray, optional
+           Explicit frame times.
+
+
+     Returns
+     -------
+     dict
+      Velocity and speed statistics.
+"""
+
+
+trajectories = np.asarray(
+      trajectories,
+      dtype=float
+)
+
+
+num_frames = trajectories.shape[0]
+
+
+if num_frames < 2:
+      raise ValueError(
+          "At least two frames are required to compute velocities."
+      )
+
+
+# --------------------------------------------------------
+# Time intervals
+# --------------------------------------------------------
+
+
+if frame_times is None:
+
+
+      delta_times = np.full(
+          num_frames - 1,
+          dt,
+          dtype=float
+      )
+
+
+else:
+
+
+      frame_times = np.asarray(
+          frame_times,
+          dtype=float
+      )
+
+
+      delta_times = np.diff(frame_times)
+
+
+if np.any(delta_times <= 0):
+      raise ValueError(
+          "Frame times must be strictly increasing."
+      )
+
+
+# --------------------------------------------------------
+# Displacements
+# --------------------------------------------------------
+
+
+displacements = np.diff(
+      trajectories,
+      axis=0
+)
+
+
+valid_previous = _finite_rows(
+      trajectories[:-1]
+)
+
+
+valid_current = _finite_rows(
+    trajectories[1:]
+)
+
+
+valid_velocity = (
+    valid_previous
+    & valid_current
+)
+
+
+# --------------------------------------------------------
+# Velocities
+# --------------------------------------------------------
+
+
+velocities = np.full_like(
+    displacements,
+    np.nan,
+    dtype=float
+)
+
+
+velocities[valid_velocity] = (
+    displacements[valid_velocity]
+    /
+    delta_times[:, None, None][
+        np.broadcast_to(
+              valid_velocity,
+              displacements.shape
+        )
+    ]
+).reshape(-1, 3)
+
+
+# The previous expression is unnecessarily complicated
+# for broadcasting, so overwrite it with the clearer form.
+velocities = np.full_like(
+    displacements,
+    np.nan,
+    dtype=float
+)
+
+
+for t in range(num_frames - 1):
+
+
+    mask = valid_velocity[t]
+
+
+    if np.any(mask):
+
+
+        velocities[t, mask] = (
+              displacements[t, mask]
+              / delta_times[t]
+        )
+
+
+# --------------------------------------------------------
+# Speed
+# --------------------------------------------------------
+
+
+speeds = np.full(
+    velocities.shape[:2],
+    np.nan,
+    dtype=float
+)
+
+
+finite_velocity = _finite_rows(
+    velocities
+)
+
+
+speeds[finite_velocity] = np.linalg.norm(
+    velocities[finite_velocity],
+    axis=1
+)
+
+
+# --------------------------------------------------------
+# Mean instantaneous speed per fish
+# --------------------------------------------------------
+
+
+mean_speed_per_fish = np.full(
+    trajectories.shape[1],
+    np.nan,
+    dtype=float
+)
+
+
+for fish_idx in range(trajectories.shape[1]):
+
+
+    valid = np.isfinite(
+          speeds[:, fish_idx]
+    )
+
+
+    if np.any(valid):
+          mean_speed_per_fish[fish_idx] = np.mean(
+              speeds[valid, fish_idx]
+          )
+
+
+# --------------------------------------------------------
+# Total observation time
+# --------------------------------------------------------
+
+
+if frame_times is None:
+    total_time = (
+          trajectories.shape[0] - 1
+    ) * dt
+else:
+    total_time = (
+          frame_times[-1]
+          - frame_times[0]
+    )
+# --------------------------------------------------------
+# First-to-last displacement
+# --------------------------------------------------------
+
+
+first_to_last_displacement = np.full(
+    (trajectories.shape[1], 3),
+    np.nan,
+    dtype=float
+)
+
+
+valid_first_last = (
+    _finite_rows(trajectories[0])
+    &
+    _finite_rows(trajectories[-1])
+)
+
+
+first_to_last_displacement[
+    valid_first_last
+] = (
+    trajectories[-1, valid_first_last]
+    -
+    trajectories[0, valid_first_last]
+)
+
+
+first_to_last_distance = np.full(
+    trajectories.shape[1],
+    np.nan,
+    dtype=float
+)
+
+
+first_to_last_distance[
+    valid_first_last
+] = np.linalg.norm(
+    first_to_last_displacement[
+         valid_first_last
+    ],
+    axis=1
+)
+
+
+total_displacement_speed = (
+    first_to_last_distance / total_time
+)
+
+
+# --------------------------------------------------------
+# Path length
+# --------------------------------------------------------
+
+
+path_lengths = np.zeros(
+    trajectories.shape[1],
+    dtype=float
+)
+   for fish_idx in range(
+         trajectories.shape[1]
+   ):
+
+
+         valid_steps = valid_velocity[
+             :,
+             fish_idx
+         ]
+
+
+         if np.any(valid_steps):
+
+
+             path_lengths[fish_idx] = np.sum(
+                  np.linalg.norm(
+                      displacements[
+                           valid_steps,
+                           fish_idx
+                      ],
+                      axis=1
+                  )
+             )
+
+
+   # --------------------------------------------------------
+   # Path-average speed
+   # --------------------------------------------------------
+
+
+   path_average_speed = (
+         path_lengths / total_time
+   )
+
+
+   return {
+         "velocities": velocities,
+         "speeds": speeds,
+         "mean_speed_per_fish": mean_speed_per_fish,
+         "total_displacement_speed": total_displacement_speed,
+         "path_average_speed": path_average_speed,
+         "path_lengths": path_lengths,
+         "delta_times": delta_times,
+         "total_time": total_time,
+         "valid_velocity": valid_velocity,
+   }
+
+
+
+# ============================================================
+# PAIRWISE DISTANCES
+# ============================================================
+
+
+def compute_pairwise_distances(trajectories):
+   """
+   Compute pairwise fish distances while ignoring missing fish.
+
+
+   For a given frame, a pairwise distance is NaN if either fish
+is not observed.
+
+
+Mean distances are calculated only from valid pairs.
+"""
+
+
+trajectories = np.asarray(
+      trajectories,
+      dtype=float
+)
+
+
+num_frames, n_fish, _ = trajectories.shape
+
+
+distance_matrices = np.full(
+      (num_frames, n_fish, n_fish),
+      np.nan,
+      dtype=float
+)
+
+
+mean_pairwise_distance_per_frame = np.full(
+      num_frames,
+      np.nan,
+      dtype=float
+)
+
+
+for t in range(num_frames):
+
+
+      valid = _finite_rows(
+          trajectories[t]
+      )
+
+
+      valid_indices = np.flatnonzero(valid)
+
+
+      if len(valid_indices) < 2:
+          continue
+
+
+      positions = trajectories[
+          t,
+          valid_indices
+      ]
+
+
+      differences = (
+          positions[:, None, :]
+          -
+          positions[None, :, :]
+      )
+
+
+      distances = np.linalg.norm(
+          differences,
+          axis=2
+      )
+
+
+      distance_matrices[
+         t
+    ][
+         np.ix_(
+              valid_indices,
+              valid_indices
+         )
+    ] = distances
+
+
+    # Exclude diagonal.
+    upper_triangle = distances[
+         np.triu_indices(
+              len(valid_indices),
+              k=1
+         )
+    ]
+
+
+    if upper_triangle.size > 0:
+         mean_pairwise_distance_per_frame[t] = (
+              np.mean(upper_triangle)
+         )
+
+
+# --------------------------------------------------------
+# Overall mean
+# --------------------------------------------------------
+
+
+finite_frame_means = (
+    mean_pairwise_distance_per_frame[
+         np.isfinite(
+              mean_pairwise_distance_per_frame
+         )
+    ]
+)
+
+
+if finite_frame_means.size:
+    total_mean_pairwise_distance = np.mean(
+         finite_frame_means
+    )
+else:
+    total_mean_pairwise_distance = np.nan
+
+
+# --------------------------------------------------------
+# Mean distance for each fish pair
+# --------------------------------------------------------
+
+
+mean_distance_between_each_pair = np.full(
+    (n_fish, n_fish),
+    np.nan,
+    dtype=float
+)
+
+
+for i in range(n_fish):
+    for j in range(n_fish):
+        values = distance_matrices[
+            :,
+            i,
+            j
+        ]
+
+
+        valid = np.isfinite(values)
+
+
+        if np.any(valid):
+            mean_distance_between_each_pair[
+                 i,
+                 j
+            ] = np.mean(
+                 values[valid]
+            )
+
+
+# --------------------------------------------------------
+# First-to-last distance change
+# --------------------------------------------------------
+
+
+first_frame_distance_matrix = (
+    distance_matrices[0]
+)
+
+
+last_frame_distance_matrix = (
+    distance_matrices[-1]
+)
+
+
+change_first_to_last = (
+    last_frame_distance_matrix
+    -
+    first_frame_distance_matrix
+)
+
+
+return {
+    "distance_matrices": distance_matrices,
+    "mean_pairwise_distance_per_frame":
+        mean_pairwise_distance_per_frame,
+    "total_mean_pairwise_distance":
+        total_mean_pairwise_distance,
+    "mean_distance_between_each_pair":
+        mean_distance_between_each_pair,
+    "first_frame_distance_matrix":
+        first_frame_distance_matrix,
+    "last_frame_distance_matrix":
+        last_frame_distance_matrix,
+    "change_first_to_last":
+        change_first_to_last,
+}
+# ============================================================
+# Z STATISTICS
+# ============================================================
+
+
+def compute_z_statistics(trajectories):
+   """
+   Compute vertical-position statistics while ignoring missing
+   observations.
+   """
+
+
+   trajectories = np.asarray(
+         trajectories,
+         dtype=float
+   )
+
+
+   z_positions = trajectories[:, :, 2]
+
+
+   n_fish = trajectories.shape[1]
+
+
+   # --------------------------------------------------------
+   # Mean z per fish
+   # --------------------------------------------------------
+
+
+   mean_z_per_fish = np.full(
+         n_fish,
+         np.nan,
+         dtype=float
+   )
+
+
+   for fish_idx in range(n_fish):
+
+
+         values = z_positions[
+             :,
+             fish_idx
+         ]
+
+
+         valid = np.isfinite(values)
+
+
+         if np.any(valid):
+             mean_z_per_fish[fish_idx] = (
+                   np.mean(values[valid])
+             )
+
+
+   # --------------------------------------------------------
+   # Mean z per frame
+   # --------------------------------------------------------
+
+
+   mean_z_per_frame = np.full(
+         z_positions.shape[0],
+         np.nan,
+         dtype=float
+   )
+for t in range(
+     z_positions.shape[0]
+):
+
+
+     values = z_positions[t]
+
+
+     valid = np.isfinite(values)
+
+
+     if np.any(valid):
+         mean_z_per_frame[t] = (
+               np.mean(values[valid])
+         )
+
+
+# --------------------------------------------------------
+# Global mean z
+# --------------------------------------------------------
+
+
+valid_z = z_positions[
+     np.isfinite(z_positions)
+]
+
+
+if valid_z.size:
+     total_mean_z = np.mean(valid_z)
+else:
+     total_mean_z = np.nan
+
+
+# --------------------------------------------------------
+# First-to-last z change
+# --------------------------------------------------------
+
+
+first_to_last_z_change = np.full(
+     n_fish,
+     np.nan,
+     dtype=float
+)
+
+
+valid = (
+     np.isfinite(z_positions[0])
+     &
+     np.isfinite(z_positions[-1])
+)
+
+
+first_to_last_z_change[valid] = (
+     z_positions[-1, valid]
+     -
+     z_positions[0, valid]
+)
+
+
+return {
+     "z_positions": z_positions,
+     "mean_z_per_fish": mean_z_per_fish,
+           "mean_z_per_frame": mean_z_per_frame,
+           "total_mean_z": total_mean_z,
+           "first_to_last_z_change":
+               first_to_last_z_change,
+     }
+
+
+
+# ============================================================
+# ZONE RESIDENCE TIMES
+# ============================================================
+
+
+def compute_z_zone_times(
+     trajectories,
+     dt=1.0,
+     z_limits=None
+):
+     """
+     Calculate the time spent by each fish in four vertical zones.
+
+
+     Missing observations do not contribute to the residence time.
+     """
+
+
+     trajectories = np.asarray(
+           trajectories,
+           dtype=float
+     )
+
+
+     z = trajectories[:, :, 2]
+
+
+     num_frames, n_fish = z.shape
+
+
+     # --------------------------------------------------------
+     # Determine z limits
+     # --------------------------------------------------------
+
+
+     if z_limits is None:
+
+
+           finite_z = z[
+               np.isfinite(z)
+           ]
+
+
+           if finite_z.size == 0:
+               z_min = 0.0
+               z_max = 1.0
+           else:
+               z_min = np.min(finite_z)
+               z_max = np.max(finite_z)
+
+
+     else:
+
+
+           z_min, z_max = z_limits
+if z_max <= z_min:
+    z_max = z_min + 1.0
+
+
+# Four zones require five boundaries.
+edges = np.linspace(
+    z_min,
+    z_max,
+    5
+)
+
+
+# --------------------------------------------------------
+# Time per zone
+# --------------------------------------------------------
+
+
+time_per_zone_per_fish = np.zeros(
+    (n_fish, 4),
+    dtype=float
+)
+
+
+for fish_idx in range(n_fish):
+
+
+    fish_z = z[
+        :,
+        fish_idx
+    ]
+
+
+    valid = np.isfinite(
+        fish_z
+    )
+
+
+    if not np.any(valid):
+        continue
+
+
+    zone_indices = np.digitize(
+        fish_z[valid],
+        edges[1:-1],
+        right=False
+    )
+
+
+    for zone in range(4):
+
+
+        count = np.count_nonzero(
+             zone_indices == zone
+        )
+
+
+        time_per_zone_per_fish[
+             fish_idx,
+             zone
+        ] = count * dt
+
+
+# --------------------------------------------------------
+# Residence fractions
+# --------------------------------------------------------
+
+
+observation_time_per_fish = np.sum(
+    time_per_zone_per_fish,
+    axis=1
+)
+
+
+fraction_per_zone_per_fish = np.full(
+    (n_fish, 4),
+    np.nan,
+    dtype=float
+)
+
+
+for fish_idx in range(n_fish):
+
+
+    total_time = (
+          observation_time_per_fish[fish_idx]
+    )
+
+
+    if total_time > 0:
+
+
+          fraction_per_zone_per_fish[
+              fish_idx
+          ] = (
+              time_per_zone_per_fish[
+                  fish_idx
+              ]
+              /
+              total_time
+          )
+
+
+mean_time_per_zone = np.nanmean(
+    time_per_zone_per_fish,
+    axis=0
+)
+
+
+mean_fraction_per_zone = np.nanmean(
+    fraction_per_zone_per_fish,
+    axis=0
+)
+
+
+frame_durations = np.full(
+    num_frames,
+    dt,
+    dtype=float
+)
+
+
+return {
+    "z_edges": edges,
+    "time_per_zone_per_fish":
+          time_per_zone_per_fish,
+    "fraction_per_zone_per_fish":
+               fraction_per_zone_per_fish,
+           "mean_time_per_zone":
+               mean_time_per_zone,
+           "mean_fraction_per_zone":
+               mean_fraction_per_zone,
+           "frame_durations":
+               frame_durations,
+     }
+
+
+
+# ============================================================
+# MSD
+# ============================================================
+
+
+def compute_msd(
+     trajectories,
+     dt=1.0,
+     min_fit_points=5,
+     min_r2=0.9,
+     fit_end_time=1.5
+):
+     """
+     Compute mean squared displacement from the initial position.
+
+
+     For each fish, a displacement is only calculated at times for
+     which both the initial position and current position are valid.
+     """
+
+
+     trajectories = np.asarray(
+           trajectories,
+           dtype=float
+     )
+
+
+     num_frames, n_fish, _ = trajectories.shape
+
+
+     displacement = np.full_like(
+           trajectories,
+           np.nan,
+           dtype=float
+     )
+
+
+     initial_positions = trajectories[0]
+
+
+     for fish_idx in range(n_fish):
+
+
+           initial_valid = np.isfinite(
+               initial_positions[fish_idx]
+           ).all()
+
+
+           if not initial_valid:
+               continue
+    current_valid = _finite_rows(
+        trajectories[:, fish_idx]
+    )
+
+
+    displacement[
+        current_valid,
+        fish_idx
+    ] = (
+        trajectories[
+              current_valid,
+              fish_idx
+        ]
+        -
+        initial_positions[
+              fish_idx
+        ]
+    )
+
+
+msd_per_fish = np.full(
+    (num_frames, n_fish),
+    np.nan,
+    dtype=float
+)
+
+
+valid_displacements = _finite_rows(
+    displacement
+)
+
+
+msd_per_fish[
+    valid_displacements
+] = np.sum(
+    displacement[
+        valid_displacements
+    ] ** 2,
+    axis=1
+)
+
+
+msd_mean = np.full(
+    num_frames,
+    np.nan,
+    dtype=float
+)
+
+
+for t in range(num_frames):
+
+
+    values = msd_per_fish[t]
+
+
+    valid = np.isfinite(values)
+
+
+    if np.any(valid):
+        msd_mean[t] = np.mean(
+              values[valid]
+         )
+
+
+lag_times = (
+    np.arange(num_frames, dtype=float)
+    * dt
+)
+
+
+# --------------------------------------------------------
+# Log-log fit
+# --------------------------------------------------------
+
+
+valid = (
+    (lag_times > 0)
+    &
+    (lag_times <= fit_end_time)
+    &
+    (msd_mean > 0)
+    &
+    np.isfinite(msd_mean)
+)
+
+
+valid_indices = np.flatnonzero(
+    valid
+)
+
+
+fit_start = None
+fit_end = None
+
+
+slope = np.nan
+intercept = np.nan
+r_squared = np.nan
+
+
+min_points = max(
+    3,
+    min_fit_points
+)
+
+
+if valid_indices.size >= min_points:
+
+
+    indices = valid_indices
+
+
+    log_times = np.log10(
+         lag_times[indices]
+    )
+
+
+    log_msd = np.log10(
+         msd_mean[indices]
+    )
+
+
+    coefficients = np.polyfit(
+         log_times,
+         log_msd,
+        1
+    )
+
+
+    predicted = np.polyval(
+        coefficients,
+        log_times
+    )
+
+
+    residual = np.sum(
+        (log_msd - predicted) ** 2
+    )
+
+
+    total = np.sum(
+        (log_msd - np.mean(log_msd)) ** 2
+    )
+
+
+    r_squared = (
+        1.0 - residual / total
+        if total > 0
+        else 1.0
+    )
+
+
+    slope, intercept = coefficients
+
+
+    fit_start = int(indices[0])
+    fit_end = int(indices[-1])
+
+
+    # min_r2 is retained for API compatibility.
+    # We do not discard the fit here because the original
+    # function also returned the fitted coefficients.
+    #
+    # The R² value is reported to the caller instead.
+
+
+return {
+    "lag_times": lag_times,
+    "msd_per_fish": msd_per_fish,
+    "msd_mean": msd_mean,
+    "fit_start_index": fit_start,
+    "fit_end_index": fit_end,
+    "fit_start_time":
+        lag_times[fit_start]
+        if fit_start is not None
+        else np.nan,
+    "fit_end_time":
+        lag_times[fit_end]
+        if fit_end is not None
+        else np.nan,
+    "fit_requested_end_time": fit_end_time,
+    "fit_exponent": slope,
+    "fit_intercept_log10": intercept,
+    "fit_r_squared": r_squared,
+}
+# ============================================================
+# NEAREST-NEIGHBOUR DISTANCES
+# ============================================================
+
+
+def compute_nearest_neighbor_distances(
+     trajectories,
+     histogram_bins=30
+):
+     """
+     Calculate the nearest-neighbour distance for each fish.
+
+
+     A fish is considered only when its position is valid.
+     The nearest neighbour must also be a valid observation.
+
+
+     Missing fish therefore do not contaminate the result.
+     """
+
+
+     trajectories = np.asarray(
+           trajectories,
+           dtype=float
+     )
+
+
+     num_frames, n_fish, _ = trajectories.shape
+
+
+     nearest_indices = np.full(
+           (num_frames, n_fish),
+           -1,
+           dtype=int
+     )
+
+
+     nearest_distances = np.full(
+           (num_frames, n_fish),
+           np.nan,
+           dtype=float
+     )
+
+
+     for t in range(num_frames):
+
+
+           valid = _finite_rows(
+                 trajectories[t]
+           )
+
+
+           valid_indices = np.flatnonzero(valid)
+
+
+           if len(valid_indices) < 2:
+                 continue
+
+
+           positions = trajectories[
+                 t,
+                 valid_indices
+   ]
+
+
+   differences = (
+        positions[:, None, :]
+        -
+        positions[None, :, :]
+   )
+
+
+   distances = np.linalg.norm(
+        differences,
+        axis=2
+   )
+
+
+   # Ignore self-distance.
+   np.fill_diagonal(
+        distances,
+        np.inf
+   )
+
+
+   nearest_local = np.argmin(
+        distances,
+        axis=1
+   )
+
+
+   for local_idx, fish_idx in enumerate(
+        valid_indices
+   ):
+
+
+        neighbour_local = nearest_local[
+              local_idx
+        ]
+
+
+        nearest_indices[
+              t,
+              fish_idx
+        ] = valid_indices[
+              neighbour_local
+        ]
+
+
+        nearest_distances[
+              t,
+              fish_idx
+        ] = distances[
+              local_idx,
+              neighbour_local
+        ]
+
+
+# --------------------------------------------------------
+# Histogram
+# --------------------------------------------------------
+
+
+density, edges = _probability_histogram(
+       nearest_distances.ravel(),
+       histogram_bins
+   )
+
+
+   mean_nearest_neighbor_distance_per_frame = np.full(
+       num_frames,
+       np.nan,
+       dtype=float
+   )
+
+
+   for t in range(num_frames):
+
+
+       values = nearest_distances[t]
+
+
+       valid = np.isfinite(values)
+
+
+       if np.any(valid):
+           mean_nearest_neighbor_distance_per_frame[t] = (
+                 np.mean(values[valid])
+           )
+
+
+   valid_all = np.isfinite(
+       nearest_distances
+   )
+
+
+   if np.any(valid_all):
+       mean_nearest_neighbor_distance = np.mean(
+           nearest_distances[valid_all]
+       )
+   else:
+       mean_nearest_neighbor_distance = np.nan
+
+
+   return {
+       "nearest_neighbor_indices":
+           nearest_indices,
+       "nearest_neighbor_distances":
+           nearest_distances,
+       "mean_nearest_neighbor_distance_per_frame":
+           mean_nearest_neighbor_distance_per_frame,
+       "mean_nearest_neighbor_distance":
+           mean_nearest_neighbor_distance,
+       "histogram_density":
+           density,
+       "histogram_edges":
+           edges,
+   }
+
+
+
+# ============================================================
+# STEP LENGTH DISTRIBUTION
+# ============================================================
+def compute_step_length_distribution(
+     trajectories,
+     histogram_bins=30
+):
+     """
+     Calculate frame-to-frame displacement lengths.
+
+
+     Steps are only included when both consecutive positions
+     are valid.
+     """
+
+
+     trajectories = np.asarray(
+           trajectories,
+           dtype=float
+     )
+
+
+     displacements = np.diff(
+           trajectories,
+           axis=0
+     )
+
+
+     valid = (
+           _finite_rows(trajectories[:-1])
+           &
+           _finite_rows(trajectories[1:])
+     )
+
+
+     step_lengths = np.full(
+           displacements.shape[:2],
+           np.nan,
+           dtype=float
+     )
+
+
+     step_lengths[valid] = np.linalg.norm(
+           displacements[valid],
+           axis=1
+     )
+
+
+     pooled_step_lengths = step_lengths[
+           np.isfinite(step_lengths)
+     ]
+
+
+     density, edges = _probability_histogram(
+           pooled_step_lengths,
+           histogram_bins
+     )
+
+
+     return {
+           "step_lengths": step_lengths,
+           "pooled_step_lengths":
+               pooled_step_lengths,
+           "histogram_density": density,
+           "histogram_edges": edges,
+     }
+
+
+
+# ============================================================
+# VELOCITY POLARIZATION
+# ============================================================
+
+
+def compute_velocity_polarization(
+     velocities
+):
+     """
+     Compute the polarization vector and its magnitude.
+
+
+     Missing velocities are ignored.
+     """
+
+
+     velocities = np.asarray(
+           velocities,
+           dtype=float
+     )
+
+
+     speeds = np.linalg.norm(
+           velocities,
+           axis=2
+     )
+
+
+     unit_velocities = np.full_like(
+           velocities,
+           np.nan,
+           dtype=float
+     )
+
+
+     valid = (
+           np.isfinite(velocities).all(axis=2)
+           &
+           (speeds > 0)
+     )
+
+
+     unit_velocities[valid] = (
+           velocities[valid]
+           /
+           speeds[valid, None]
+     )
+
+
+     polarization_vectors = np.full(
+           velocities.shape[:2],
+           np.nan,
+           dtype=float
+     )
+
+
+     # Correct shape is (time, 3).
+   polarization_vectors = np.full(
+        (velocities.shape[0], 3),
+        np.nan,
+        dtype=float
+   )
+
+
+   for t in range(
+        velocities.shape[0]
+   ):
+
+
+        valid_t = np.isfinite(
+           unit_velocities[t]
+        ).all(axis=1)
+
+
+        if np.any(valid_t):
+
+
+           polarization_vectors[t] = np.mean(
+                  unit_velocities[
+                       t,
+                       valid_t
+                  ],
+                  axis=0
+           )
+
+
+   polarization_magnitude = np.full(
+        velocities.shape[0],
+        np.nan,
+        dtype=float
+   )
+
+
+   valid_p = np.isfinite(
+        polarization_vectors
+   ).all(axis=1)
+
+
+   polarization_magnitude[valid_p] = np.linalg.norm(
+        polarization_vectors[valid_p],
+        axis=1
+   )
+
+
+   return {
+        "polarization_vectors":
+           polarization_vectors,
+        "polarization_magnitude":
+           polarization_magnitude,
+   }
+
+
+
+# ============================================================
+# VELOCITY AUTOCORRELATION
+# ============================================================
+
+
+def compute_velocity_autocorrelation(
+     velocities,
+     dt=1.0
+):
+     """
+     Compute temporal velocity autocorrelation.
+
+
+     At each lag, only pairs for which both velocities are
+     finite are included.
+     """
+
+
+     velocities = np.asarray(
+           velocities,
+           dtype=float
+     )
+
+
+     num_frames = velocities.shape[0]
+
+
+     values = np.full(
+           num_frames,
+           np.nan,
+           dtype=float
+     )
+
+
+     valid_pair_counts = np.zeros(
+           num_frames,
+           dtype=int
+     )
+
+
+     for lag in range(num_frames):
+
+
+           v1 = velocities[
+               :num_frames - lag
+           ]
+
+
+           v2 = velocities[
+               lag:
+           ]
+
+
+           valid = (
+               _finite_rows(v1)
+               &
+               _finite_rows(v2)
+           )
+
+
+           if not np.any(valid):
+               continue
+
+
+           products = np.sum(
+               v1[valid]
+               *
+               v2[valid],
+               axis=1
+           )
+
+
+           values[lag] = np.mean(
+               products
+           )
+
+
+           valid_pair_counts[lag] = (
+               products.size
+           )
+
+
+     # --------------------------------------------------------
+     # Normalize by C(0)
+     # --------------------------------------------------------
+
+
+     if (
+           np.isfinite(values[0])
+           and values[0] != 0
+     ):
+           values /= values[0]
+
+
+     return {
+           "lag_times":
+               np.arange(num_frames) * dt,
+           "autocorrelation":
+               values,
+           "valid_pair_counts":
+               valid_pair_counts,
+     }
+
+
+
+# ============================================================
+# NEIGHBOUR VELOCITY CORRELATION
+# ============================================================
+
+
+def compute_neighbor_velocity_correlation(
+     trajectories,
+     velocities,
+     histogram_bins=20
+):
+     """
+     Compute directional velocity correlation between each fish
+     and its nearest neighbour.
+
+
+     Only pairs for which both velocities and both positions are
+     valid are included.
+     """
+
+
+     trajectories = np.asarray(
+           trajectories,
+           dtype=float
+     )
+velocities = np.asarray(
+     velocities,
+     dtype=float
+)
+
+
+nearest = compute_nearest_neighbor_distances(
+     trajectories
+)
+
+
+nearest_indices = nearest[
+     "nearest_neighbor_indices"
+]
+
+
+nearest_distances = nearest[
+     "nearest_neighbor_distances"
+]
+
+
+num_velocity_frames = velocities.shape[0]
+
+
+# nearest-neighbour information corresponds to position
+# frames, while velocities correspond to intervals between
+# frames. Use the starting frame of each velocity interval.
+distances = nearest_distances[
+     :-1
+]
+
+
+correlations = np.full(
+     distances.shape,
+     np.nan,
+     dtype=float
+)
+
+
+for t in range(
+     num_velocity_frames
+):
+
+
+     for fish_idx in range(
+           trajectories.shape[1]
+     ):
+
+
+           neighbour_idx = nearest_indices[
+               t,
+               fish_idx
+           ]
+
+
+           if neighbour_idx < 0:
+               continue
+
+
+           v1 = velocities[
+               t,
+               fish_idx
+           ]
+        v2 = velocities[
+             t,
+             neighbour_idx
+        ]
+
+
+        if not (
+             np.isfinite(v1).all()
+             and
+             np.isfinite(v2).all()
+        ):
+             continue
+
+
+        norm1 = np.linalg.norm(v1)
+        norm2 = np.linalg.norm(v2)
+
+
+        if norm1 == 0 or norm2 == 0:
+             continue
+
+
+        correlations[
+             t,
+             fish_idx
+        ] = np.dot(
+             v1,
+             v2
+        ) / (
+             norm1 * norm2
+        )
+
+
+# --------------------------------------------------------
+# Distance bins
+# --------------------------------------------------------
+
+
+valid_distances = distances[
+    np.isfinite(distances)
+    &
+    np.isfinite(correlations)
+]
+
+
+if valid_distances.size == 0:
+
+
+    density_edges = np.linspace(
+        0,
+        1,
+        histogram_bins + 1
+    )
+
+
+else:
+
+
+    density_edges = np.histogram_bin_edges(
+        valid_distances,
+        bins=histogram_bins
+     )
+
+
+     # Avoid degenerate binning if all distances are equal.
+     if len(density_edges) < 2:
+         value = valid_distances[0]
+         width = max(
+               abs(value) * 0.05,
+               1e-12
+         )
+
+
+         density_edges = np.array([
+               value - width,
+               value + width
+         ])
+
+
+bin_indices = np.digitize(
+     distances.ravel(),
+     density_edges
+) - 1
+
+
+mean_correlation = np.full(
+     len(density_edges) - 1,
+     np.nan,
+     dtype=float
+)
+
+
+counts = np.zeros(
+     len(density_edges) - 1,
+     dtype=int
+)
+
+
+flat_correlations = correlations.ravel()
+flat_distances = distances.ravel()
+
+
+for bin_index in range(
+     len(mean_correlation)
+):
+
+
+     mask = (
+         (bin_indices == bin_index)
+         &
+         np.isfinite(flat_correlations)
+         &
+         np.isfinite(flat_distances)
+     )
+
+
+     counts[bin_index] = np.count_nonzero(
+         mask
+     )
+
+
+     if counts[bin_index] > 0:
+                 mean_correlation[
+                         bin_index
+                 ] = np.mean(
+                         flat_correlations[mask]
+                 )
+
+
+        return {
+
+
+Two details worth highlighting
+
+1. I deliberately did not use np.nanmean() blindly
+For example, for pairwise distances, this would be insufficient:
+
+
+        Python                                                                     Esegui
+
+  np.nanmean(distance_matrix)
+
+
+because the diagonal contains self-distances and the number of observed fish varies
+between frames. The new implementation explicitly selects valid fish and valid pairs.
+
+The same principle is used for velocity and nearest-neighbour calculations.
+
+2. Missing data now has a defined meaning
+Suppose a fish is detected like this:
+
+
+  frame:           100    101   102   103   104
+  position:          ✓      ✓    ✗      ✗     ✓
+
+
+The resulting velocity validity is:
+
+
+  100→101            ✓
+  101→102            ✗
+  102→103            ✗
+  103→104            ✗
+
+
+There is no artificial velocity connecting frame 101 to frame 104.
+
+Likewise, the path length includes only observed consecutive steps. This is much
+preferable to interpolation for the kinematic analyses you are performing.
+
+One correction to the previous tracking.py
+There is one thing I would change from the version I gave you previously:
+build_trajectories() currently raises an error whenever an NPZ contains fewer than
+n_fish detections. If your reconstructed data can genuinely contain fewer detections
+because of occlusion, that check will prevent the new tracker from ever seeing a missing
+fish.
+If your NPZ files always contain exactly eight fish detections, leave it as it is. If the
+number of detections can fall below eight during occlusion, tracking.py should also be
+modified to accept variable numbers of detections. That is an important distinction because
+the tracker can only recover an occluded fish if the input data actually contains the other
+detections and identifies the missing one as absent rather than simply truncating/rejecting
+the frame.
+
+
+
+
+                               If your NPZ files always contain exactly eight fish
+                               detections, leave it as it is. If the number of detections can
+                               fall below eight during occlusion, tracking.py should
+                               also be modified to accept variable numbers of detections.
+                               That is an important distinction because the tracker can
+                               only recover an occluded fish if the input data actually
+                               contains the other detections and identifies the missing
+                               one as absent rather than simply truncating/rejecting the
+                               frame.
+
+                               Now indeed I should also analyse cases where there's a
+                               Mostra di più
+
+Yes, you should change tracking.py if the number of detected fish can vary
+between frames or experiments. And no, I would not run python main.py yet and
+assume that the results are correct.
+
+There are two separate issues.
+
+1. Variable number of fish: yes, change tracking.py
+The current code assumes:
+
+
+       Python                                                                         Esegui
+
+  data = data[:n_fish]
+
+
+and:
+
+
+       Python                                                                         Esegui
+
+  if len(data) < n_fish:
+       raise ValueError(...)
+This is inappropriate if, for example, you analyse:
+
+      an experiment with 8 fish;
+      another with 6 fish;
+      a frame in which only 7 fish are detected because one is temporarily occluded.
+
+The tracker should distinguish between:
+
+   expected number of biological fish
+
+and
+
+   number of detections in a particular frame.
+
+For example, for an 8-fish experiment:
+
+
+  Frame 100: 8 detections
+  Frame 101: 8 detections
+  Frame 102: 7 detections    ← one fish not detected
+  Frame 103: 7 detections
+  Frame 104: 8 detections
+
+
+The trajectory array should still be:
+
+
+  451 × 8 × 3
+
+
+but frames 102–103 should contain NaN for the missing fish.
+
+That is exactly what the velocity-prediction tracker is designed to handle.
+
+More importantly
+You should not use:
+
+
+       Python                                                                          Esegui
+
+  data = data[:n_fish]
+
+
+because if a frame contains 9 detections, the ninth might actually be a legitimate fish while
+one of the first eight might be a spurious detection. Blindly truncating the list is unsafe.
+
+The correct tracker should accept:
+
+
+  number of detections = 0, 1, ..., n_fish, ...
+
+
+for every frame and assign those detections to the existing biological tracks.
+2. Is the rest of the code correct?
+Not quite yet.
+
+I want to correct something from my previous answer: I gave you a metrics.py that is
+substantially safer with NaNs, but I would not claim that the entire pipeline is now ready
+to produce scientifically correct results simply by running main.py .
+
+There are three levels here.
+
+Level 1 — No catastrophic NaN propagation
+This is what the new metrics.py addresses.
+
+Instead of:
+
+
+  one missing position
+          ↓
+  NaN velocity
+          ↓
+  mean = NaN
+          ↓
+  entire result unusable
+
+
+you now have:
+
+
+  missing position
+          ↓
+  missing velocity
+          ↓
+  that observation excluded
+          ↓
+  remaining observations used
+
+
+That part is correct.
+
+
+
+
+Level 2 — Tracking
+The new constant-velocity + Hungarian tracker is a substantial improvement over:
+
+
+  nearest neighbour
+
+
+and over the current TrackPy fragmentation strategy.
+
+But it still needs to be validated on your actual data.
+In particular, this parameter:
+
+
+      Python                                                                          Esegui
+
+  max_displacement=20.0
+
+
+is not something I can declare scientifically correct without looking at the actual
+displacement distribution.
+
+Similarly:
+
+
+      Python                                                                          Esegui
+
+  velocity_smoothing=0.5
+
+
+is a reasonable starting value, but it is a parameter rather than a proven property of your
+system.
+
+So after the first run we need to inspect:
+
+    trajectory continuity;
+    identity preservation at crossings;
+    missing observations;
+    maximum frame-to-frame displacement;
+    sudden velocity spikes.
+
+
+
+
+Level 3 — Scientific validity of the metrics
+This is separate from whether the code runs.
+
+For example, if a fish is missing for 30 frames and then reappears, the tracker may
+successfully reconnect it—or it may assign it incorrectly to another fish.
+
+The metrics can be perfectly NaN-safe and still be wrong if the identity assignment is
+wrong.
+
+Therefore:
+
+
+   NaN-safe ≠ scientifically correct tracking.
+
+The first run is primarily a tracking validation run, not yet a final analysis run.
+3. There is one more important problem in the current
+tracker
+The version I gave you previously has this behaviour:
+
+
+        Python                                                                    Esegui
+
+  if fish is not assigned:
+        trajectory[t, fish] = NaN
+
+
+but it does not maintain a predicted state indefinitely.
+
+That means if:
+
+
+  Fish 3:
+  frame 100      ✓
+  frame 101      ✓
+  frame 102      ✗
+  frame 103      ✗
+  frame 104      ✓
+
+
+the tracker needs to predict Fish 3's position through frames 102–103 in order to have a
+meaningful prediction for frame 104.
+
+The current implementation instead bases the prediction on:
+
+
+        Python                                                                    Esegui
+
+  trajectories[t - 1, fish_idx]
+
+
+which becomes NaN after the first missing frame.
+
+So it loses the kinematic memory precisely when an occlusion lasts more than one frame.
+
+This needs to be fixed.
+
+The tracker should maintain an internal state:
+
+
+  last observed position
+  last estimated velocity
+  last update time
+
+
+independently of the exported trajectory array.
+
+Then:
+  frame 100 observed
+         ↓
+  state updated
+
+
+  frame 101 observed
+         ↓
+  velocity updated
+
+
+  frame 102 missing
+         ↓
+  predict internally
+         ↓
+  export NaN
+
+
+  frame 103 missing
+         ↓
+  predict internally again
+         ↓
+  export NaN
+
+
+  frame 104 observed
+         ↓
+  match against prediction
+         ↓
+  update state
+
+
+That is the behaviour we actually want.
+
+
+
+
+4. Therefore I recommend one more revision before
+running
+I would make tracking.py handle:
+
+Input
+Each frame may contain a different number of detections:
+
+
+      Python                                               Esegui
+
+  n_detections != n_fish
+
+
+
+Internal tracker state
+For each biological fish:
+
+
+  position
+  velocity
+      number of consecutive missing frames
+
+
+Assignment
+At every frame:
+
+                                    xpred = xlast + vlast Δt
+                                         ​       ​       ​
+
+
+
+
+then Hungarian assignment against all detections in that frame.
+
+Gating
+Reject assignments where:
+
+                                  ∣xdetection − xpred ∣ > dmax
+                                             ​       ​           ​
+
+
+
+
+Missing fish
+If no detection is assigned:
+
+
+         Python                                                                 Esegui
+
+      trajectory[t, fish] = NaN
+
+
+but keep the internal predicted state alive.
+
+Extra detections
+If:
+
+
+      n_detections > n_fish
+
+
+the unmatched detections are simply ignored unless we later decide that the experiment
+needs dynamic track creation.
+
+This is appropriate if n_fish represents the known number of biological fish.
+
+
+
+
+5. One distinction about "different number of fish"
+There are actually two different situations:
+
+A. Different experiments
+For example:
+
+
+      experiment A → 8 fish
+      experiment B → 6 fish
+      experiment C → 12 fish
+This is easy.
+
+You simply set:
+
+
+      Python                                                                     Esegui
+
+  number_of_fish = 6
+
+
+for the second experiment, etc.
+
+B. Different number of detections within one experiment
+For example:
+
+
+  8 biological fish
+  ↓
+  8 detections
+  7 detections
+  6 detections
+  8 detections
+
+
+This is the important case for occlusions.
+
+The tracker needs to support this explicitly.
+
+
+
+
+6. So: can you run python main.py now?
+I recommend no.
+
+Not because the approach is wrong, but because I would first make the tracker robust to
+variable detection counts and multi-frame occlusions.
+
+After that, the workflow should be:
+
+
+  1. Revised tracking.py
+               ↓
+  2. Revised metrics.py
+               ↓
+  3. python main.py
+               ↓
+  4. Inspect tracking diagnostics
+               ↓
+  5. Inspect trajectory plots/video
+               ↓
+  6. Check velocity distributions
+               ↓
+  7. Only then trust the behavioral metrics
+The next revision should therefore be tracking.py only. We don't need to redesign
+metrics.py again at this point; its fundamental NaN-handling strategy is appropriate. The
+tracker is the remaining piece that should be corrected before the first serious run.
+
+
+
+
+              ChatGPT può commettere errori. Assicurati di verificare le informazioni importanti.
+

@@ -84,9 +84,9 @@ def make_trajectory_video(trajectories, save_path, fps=15):
         lines.append(line)
         points.append(point)
 
-    # Calcolo dei limiti globali per fissare la telecamera
-    x_min, y_min, z_min = np.min(trajectories, axis=(0, 1))
-    x_max, y_max, z_max = np.max(trajectories, axis=(0, 1))
+    # calcolo dei limiti globali ignorando i valori non definiti
+    x_min, y_min, z_min = np.nanmin(trajectories, axis=(0, 1))
+    x_max, y_max, z_max = np.nanmax(trajectories, axis=(0, 1))
 
     ax.set_xlim([x_min, x_max])
     ax.set_ylim([y_min, y_max])
@@ -99,14 +99,24 @@ def make_trajectory_video(trajectories, save_path, fps=15):
     def update(frame):
         for fish_idx in range(n_fish):
             fish_traj = trajectories[:frame+1, fish_idx, :]
+            valid_mask = ~np.isnan(fish_traj).any(axis=1)
+            valid_traj = fish_traj[valid_mask]
             
-            # Aggiornamento traiettoria
-            lines[fish_idx].set_data(fish_traj[:, 0], fish_traj[:, 1])
-            lines[fish_idx].set_3d_properties(fish_traj[:, 2])
+            if len(valid_traj) > 0:
+                lines[fish_idx].set_data(valid_traj[:, 0], valid_traj[:, 1])
+                lines[fish_idx].set_3d_properties(valid_traj[:, 2])
+            else:
+                lines[fish_idx].set_data([], [])
+                lines[fish_idx].set_3d_properties([])
             
-            # Aggiornamento posizione attuale
-            points[fish_idx].set_data([fish_traj[-1, 0]], [fish_traj[-1, 1]])
-            points[fish_idx].set_3d_properties([fish_traj[-1, 2]])
+            if frame < num_frames and not np.isnan(trajectories[frame, fish_idx, :]).any():
+                curr = trajectories[frame, fish_idx, :]
+                points[fish_idx].set_data([curr[0]], [curr[1]])
+                points[fish_idx].set_3d_properties([curr[2]])
+            else:
+                points[fish_idx].set_data([], [])
+                points[fish_idx].set_3d_properties([])
+                
         return lines + points
 
     anim = FuncAnimation(fig, update, frames=num_frames, interval=1000/fps, blit=False)

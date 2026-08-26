@@ -1,6 +1,6 @@
 # Zebrafish 3D trajectory analysis pipeline
 
-This pipeline processes 3D reconstructed point cloud data of zebrafish to extract physical coordinates, track individual fish across frames using constant-velocity prediction with Hungarian assignment, and compute behavioral and kinematic metrics[cite: 1, 2]. It automatically generates numpy arrays, static plots, a video animation, and tracking diagnostics.
+This pipeline processes 3D reconstructed point cloud data of zebrafish to extract physical coordinates, track individual fish across frames using constant-velocity prediction with Hungarian assignment, and compute behavioral and kinematic metrics. It automatically generates numpy arrays, static plots, a video animation, and tracking diagnostics.
 
 ## How to use the pipeline
 

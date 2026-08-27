@@ -5,14 +5,19 @@ This pipeline processes 3D reconstructed point cloud data of zebrafish to extrac
 ## How to use the pipeline
 
 * Activate your python virtual environment in the terminal.
-* Open the `main.py` script.
-* Modify the `input_recon_folder` variable to point to your specific directory containing the `frame-*.npz` files.
+* Open `main.py` to analyze one session, then set `input_recon_folder` to its `recon` directory.
 * Set the `number_of_fish` variable to match your experimental setup.
 * Run the script from your terminal using the command `python main.py`.
 
+To analyze all sessions automatically, configure the same parameters in
+`total.py` and run `python total.py`. Both entry points save each session in a
+dedicated subfolder. For example, `8_fish/12_49_49_ANALISI/recon` is saved in
+`8_fish_analysis_output/12_49_49_output`.
+
 ## Detailed script breakdown
 
-* `main.py`: this is the entry point of the pipeline. It defines the exact paths for the input and output directories and sets the physical parameters, such as the grid step, the time delta between frames, and the expected number of fish. It triggers the entire analytical process by calling the main wrapper function.
+* `main.py`: this is the entry point for analyzing one selected session. It defines the input path, output root, and physical parameters.
+* `total.py`: this is the entry point for analyzing every `*_ANALISI/recon` session below the input root with the configured parameters.
 * `pipeline.py`: this script acts as the main execution wrapper. It brings together all the modularized functions. It first calls the tracking module to build the trajectories, then passes those trajectories to the metrics module to compute velocities, distances, and z-zone statistics. Finally, it saves all the numerical results as `.npy` arrays, calls the plotting module to export images and video files, and prints a summary to the console.
 * `tracking.py`: this module handles data loading, noise filtering, and spatial tracking. It applies a constant-velocity kinematic prediction -- Before looking at frame $t+1$, the script calculates the current speed and direction of an object in frame $t$. It then predicts where the object should be in the next frame, assuming it maintains that same speed and heading -- paired with a gated Hungarian assignment to maintain fixed identities and prevent unphysical teleportation jumps during path intersections. Hungarian assignment is a mathematical optimization method used to find the best possible pairings between two sets of points (in this case, the predicted positions and the actual detected positions in the new frame). "Gated" means it sets a maximum distance threshold; it will refuse to match a predicted point to a detection if the distance between them is physically impossible.
 Occlusions are strictly recorded as `NaN` values, and the algorithm exports extensive assignment diagnostics for validation.

@@ -292,7 +292,7 @@ def track_with_velocity_prediction(
 
 def build_trajectories(
     recon_folder=None,
-    n_fish=8,
+    n_fish=4,
     grid_step=0.75,
     tracking_mode="velocity",
     save_folder=None,

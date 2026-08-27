@@ -24,7 +24,14 @@ def analyze_fish_trajectories(
     velocity_smoothing=0.5,
     min_component_points=10,
 ):
-    output_folder = Path(output_folder)
+    recon_path = Path(recon_folder)
+    session_name = recon_path.parent.name
+    if session_name.endswith("_ANALISI"):
+        session_name = f"{session_name[:-len('_ANALISI')]}_output"
+    else:
+        session_name = f"{session_name}_output"
+
+    output_folder = Path(output_folder) / session_name
     output_folder.mkdir(parents=True, exist_ok=True)
 
     # costruzione delle traiettorie dalla cartella recon
@@ -51,7 +58,7 @@ def analyze_fish_trajectories(
     )
 
     distance_results = compute_pairwise_distances(trajectories)
-    msd_results = compute_msd(trajectories, dt=dt, fit_end_time=1.0)
+    msd_results = compute_msd(trajectories, dt=dt, fit_end_time=2.4)
     nearest_results = compute_nearest_neighbor_distances(trajectories)
     step_results = compute_step_length_distribution(trajectories)
     polarization_results = compute_velocity_polarization(velocity_results["velocities"])
@@ -190,6 +197,23 @@ def analyze_fish_trajectories(
     fig.savefig(output_folder / "velocity_autocorrelation.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
+    semilog_mask = (
+        (autocorrelation_results["lag_times"] >= 0)
+        & (autocorrelation_results["autocorrelation"] > 0)
+        & np.isfinite(autocorrelation_results["autocorrelation"])
+    )
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.semilogy(
+        autocorrelation_results["lag_times"][semilog_mask],
+        autocorrelation_results["autocorrelation"][semilog_mask],
+        "o-",
+    )
+    ax.set_title("Autocorrelazione delle velocità in scala semilog")
+    ax.set_xlabel("ritardo [s]")
+    ax.set_ylabel("Cv(tau) / Cv(0)")
+    fig.savefig(output_folder / "velocity_autocorrelation_semilog.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(neighbor_correlation_results["bin_centers"], neighbor_correlation_results["mean_correlation"], "o-")
     ax.set_title("Correlazione delle velocità tra primi vicini")
@@ -245,8 +269,36 @@ def analyze_fish_trajectories(
     print(f"Tempo totale: {(trajectories.shape[0] - 1) * dt:.3f} s")
     
     print("\n--- Velocità media lungo il percorso per pesce ---")
-    for fish_idx, value in enumerate(velocity_results["path_average_speed"]):
+    individual_mean_speeds = velocity_results["path_average_speed"]
+    for fish_idx, value in enumerate(individual_mean_speeds):
         print(f"Fish {fish_idx}: {value:.3f} mm/s")
+    individual_speed_mean = np.nanmean(individual_mean_speeds)
+    individual_speed_std = np.nanstd(individual_mean_speeds, ddof=1)
+    collective_frame_speeds = np.nanmean(velocity_results["speeds"], axis=1)
+    collective_speed_variance = np.nanvar(collective_frame_speeds, ddof=1)
+    print(f"Velocità media del gruppo: {individual_speed_mean:.3f} mm/s")
+    print(f"Deviazione standard individuale: {individual_speed_std:.3f} mm/s")
+    print(f"Varianza della velocità collettiva: {collective_speed_variance:.3f} (mm/s)^2")
+
+    print("\n--- Fit lineare del MSD in scala log-log ---")
+    if msd_results["fit_start_index"] is not None:
+        fit_coefficient = 10 ** msd_results["fit_intercept_log10"]
+        fit_speed_scale = np.sqrt(fit_coefficient)
+        print(
+            "MSD = "
+            f"{fit_coefficient:.6f} * t^{msd_results['fit_exponent']:.6f}"
+        )
+        print(f"Esponente alpha: {msd_results['fit_exponent']:.6f}")
+        print(f"Coefficiente A = 10^intercetta: {fit_coefficient:.6f}")
+        print(f"Radice quadrata di A: {fit_speed_scale:.6f} mm/s")
+        print(f"R²: {msd_results['fit_r_squared']:.6f}")
+        print(
+            "Intervallo fit: "
+            f"{msd_results['fit_start_time']:.3f}-"
+            f"{msd_results['fit_end_time']:.3f} s"
+        )
+    else:
+        print("Fit non disponibile: dati validi insufficienti.")
 
     print("\n--- Distanza media tra pesci ---")
     print(f"Distanza media totale: {distance_results['total_mean_pairwise_distance']:.3f} mm")

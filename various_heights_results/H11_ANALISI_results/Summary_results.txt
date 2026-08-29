@@ -1,0 +1,1025 @@
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\10_52_30_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 49.025 mm/s
+Fish 1: 56.429 mm/s
+Fish 2: 58.890 mm/s
+Fish 3: 46.286 mm/s
+Fish 4: 38.851 mm/s
+Fish 5: 34.106 mm/s
+Fish 6: 47.700 mm/s
+Fish 7: 39.019 mm/s
+Velocità media del gruppo: 46.288 mm/s
+Deviazione standard individuale: 8.682 mm/s
+Varianza della velocità collettiva: 84.488 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 2053.446392 * t^1.889117
+Esponente alpha: 1.889117
+Coefficiente A = 10^intercetta: 2053.446392
+Radice quadrata di A: 45.314969 mm/s
+R²: 0.988951
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 107.733 mm
+
+--- Altezza z media globale ---
+74.015 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\10_52_30_output
+
+##### Analisi di 10_53_39_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 11-19-36
+Candidati dopo filtro/frame (min-mediana-max): 7-9-14 (min punti=10)
+Posizioni valide: 3560/3608 (98.67%)
+Assegnazioni rifiutate dal gate: 45
+Candidati ignorati: 709
+Distanza assegnazione (mediana / 95° percentile): 1.034 / 4.464 mm
+Fish 0: 450/451 frame osservati
+Fish 1: 438/451 frame osservati
+Fish 2: 450/451 frame osservati
+Fish 3: 447/451 frame osservati
+Fish 4: 449/451 frame osservati
+Fish 5: 451/451 frame osservati
+Fish 6: 451/451 frame osservati
+Fish 7: 424/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\10_53_39_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 49.612 mm/s
+Fish 1: 50.178 mm/s
+Fish 2: 40.005 mm/s
+Fish 3: 54.218 mm/s
+Fish 4: 39.523 mm/s
+Fish 5: 42.102 mm/s
+Fish 6: 38.726 mm/s
+Fish 7: 44.816 mm/s
+Velocità media del gruppo: 44.898 mm/s
+Deviazione standard individuale: 5.803 mm/s
+Varianza della velocità collettiva: 92.292 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1427.190307 * t^1.792215
+Esponente alpha: 1.792215
+Coefficiente A = 10^intercetta: 1427.190307
+Radice quadrata di A: 37.778172 mm/s
+R²: 0.987582
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 115.286 mm
+
+--- Altezza z media globale ---
+53.062 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\10_53_39_output
+
+##### Analisi di 10_54_48_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 9-19-36
+Candidati dopo filtro/frame (min-mediana-max): 7-10-16 (min punti=10)
+Posizioni valide: 3589/3608 (99.47%)
+Assegnazioni rifiutate dal gate: 15
+Candidati ignorati: 805
+Distanza assegnazione (mediana / 95° percentile): 1.053 / 4.237 mm
+Fish 0: 451/451 frame osservati
+Fish 1: 450/451 frame osservati
+Fish 2: 451/451 frame osservati
+Fish 3: 446/451 frame osservati
+Fish 4: 451/451 frame osservati
+Fish 5: 446/451 frame osservati
+Fish 6: 445/451 frame osservati
+Fish 7: 449/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\10_54_48_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 50.006 mm/s
+Fish 1: 46.422 mm/s
+Fish 2: 36.394 mm/s
+Fish 3: 53.746 mm/s
+Fish 4: 39.979 mm/s
+Fish 5: 48.619 mm/s
+Fish 6: 50.268 mm/s
+Fish 7: 43.351 mm/s
+Velocità media del gruppo: 46.098 mm/s
+Deviazione standard individuale: 5.816 mm/s
+Varianza della velocità collettiva: 78.233 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1205.107473 * t^1.872881
+Esponente alpha: 1.872881
+Coefficiente A = 10^intercetta: 1205.107473
+Radice quadrata di A: 34.714658 mm/s
+R²: 0.999212
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 103.528 mm
+
+--- Altezza z media globale ---
+53.547 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\10_54_48_output
+
+##### Analisi di 10_55_58_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 10-18-42
+Candidati dopo filtro/frame (min-mediana-max): 7-9-15 (min punti=10)
+Posizioni valide: 3574/3608 (99.06%)
+Assegnazioni rifiutate dal gate: 32
+Candidati ignorati: 774
+Distanza assegnazione (mediana / 95° percentile): 1.084 / 4.502 mm
+Fish 0: 450/451 frame osservati
+Fish 1: 445/451 frame osservati
+Fish 2: 449/451 frame osservati
+Fish 3: 451/451 frame osservati
+Fish 4: 445/451 frame osservati
+Fish 5: 445/451 frame osservati
+Fish 6: 448/451 frame osservati
+Fish 7: 441/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\10_55_58_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 52.241 mm/s
+Fish 1: 41.087 mm/s
+Fish 2: 38.225 mm/s
+Fish 3: 37.486 mm/s
+Fish 4: 48.921 mm/s
+Fish 5: 50.966 mm/s
+Fish 6: 36.607 mm/s
+Fish 7: 50.640 mm/s
+Velocità media del gruppo: 44.522 mm/s
+Deviazione standard individuale: 6.777 mm/s
+Varianza della velocità collettiva: 76.945 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 2403.888900 * t^1.737016
+Esponente alpha: 1.737016
+Coefficiente A = 10^intercetta: 2403.888900
+Radice quadrata di A: 49.029470 mm/s
+R²: 0.996234
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 115.924 mm
+
+--- Altezza z media globale ---
+44.817 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\10_55_58_output
+
+##### Analisi di 10_57_13_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 9-21-46
+Candidati dopo filtro/frame (min-mediana-max): 8-11-18 (min punti=10)
+Posizioni valide: 3589/3608 (99.47%)
+Assegnazioni rifiutate dal gate: 19
+Candidati ignorati: 1299
+Distanza assegnazione (mediana / 95° percentile): 1.019 / 4.224 mm
+Fish 0: 451/451 frame osservati
+Fish 1: 444/451 frame osservati
+Fish 2: 449/451 frame osservati
+Fish 3: 450/451 frame osservati
+Fish 4: 450/451 frame osservati
+Fish 5: 449/451 frame osservati
+Fish 6: 450/451 frame osservati
+Fish 7: 446/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\10_57_13_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 47.138 mm/s
+Fish 1: 48.225 mm/s
+Fish 2: 57.696 mm/s
+Fish 3: 36.235 mm/s
+Fish 4: 46.277 mm/s
+Fish 5: 52.262 mm/s
+Fish 6: 38.521 mm/s
+Fish 7: 48.602 mm/s
+Velocità media del gruppo: 46.869 mm/s
+Deviazione standard individuale: 6.911 mm/s
+Varianza della velocità collettiva: 68.969 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1715.878096 * t^1.804842
+Esponente alpha: 1.804842
+Coefficiente A = 10^intercetta: 1715.878096
+Radice quadrata di A: 41.423159 mm/s
+R²: 0.997553
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 99.510 mm
+
+--- Altezza z media globale ---
+67.570 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\10_57_13_output
+
+##### Analisi di 10_58_27_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 11-23-46
+Candidati dopo filtro/frame (min-mediana-max): 7-11-17 (min punti=10)
+Posizioni valide: 3476/3608 (96.34%)
+Assegnazioni rifiutate dal gate: 126
+Candidati ignorati: 1442
+Distanza assegnazione (mediana / 95° percentile): 1.578 / 8.343 mm
+Fish 0: 423/451 frame osservati
+Fish 1: 436/451 frame osservati
+Fish 2: 449/451 frame osservati
+Fish 3: 441/451 frame osservati
+Fish 4: 451/451 frame osservati
+Fish 5: 403/451 frame osservati
+Fish 6: 444/451 frame osservati
+Fish 7: 429/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\10_58_27_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 54.616 mm/s
+Fish 1: 62.226 mm/s
+Fish 2: 52.122 mm/s
+Fish 3: 55.514 mm/s
+Fish 4: 39.499 mm/s
+Fish 5: 62.058 mm/s
+Fish 6: 58.625 mm/s
+Fish 7: 39.648 mm/s
+Velocità media del gruppo: 53.039 mm/s
+Deviazione standard individuale: 9.016 mm/s
+Varianza della velocità collettiva: 175.018 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 2214.505055 * t^1.601222
+Esponente alpha: 1.601222
+Coefficiente A = 10^intercetta: 2214.505055
+Radice quadrata di A: 47.058528 mm/s
+R²: 0.991053
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 88.342 mm
+
+--- Altezza z media globale ---
+77.092 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\10_58_27_output
+
+##### Analisi di 10_59_43_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 11-25-53
+Candidati dopo filtro/frame (min-mediana-max): 7-11-23 (min punti=10)
+Posizioni valide: 3521/3608 (97.59%)
+Assegnazioni rifiutate dal gate: 82
+Candidati ignorati: 1370
+Distanza assegnazione (mediana / 95° percentile): 1.355 / 5.949 mm
+Fish 0: 451/451 frame osservati
+Fish 1: 431/451 frame osservati
+Fish 2: 418/451 frame osservati
+Fish 3: 451/451 frame osservati
+Fish 4: 445/451 frame osservati
+Fish 5: 432/451 frame osservati
+Fish 6: 450/451 frame osservati
+Fish 7: 443/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\10_59_43_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 54.773 mm/s
+Fish 1: 48.881 mm/s
+Fish 2: 45.338 mm/s
+Fish 3: 39.208 mm/s
+Fish 4: 43.045 mm/s
+Fish 5: 66.551 mm/s
+Fish 6: 68.902 mm/s
+Fish 7: 39.313 mm/s
+Velocità media del gruppo: 50.751 mm/s
+Deviazione standard individuale: 11.659 mm/s
+Varianza della velocità collettiva: 95.768 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1685.382918 * t^1.753338
+Esponente alpha: 1.753338
+Coefficiente A = 10^intercetta: 1685.382918
+Radice quadrata di A: 41.053415 mm/s
+R²: 0.987428
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 111.129 mm
+
+--- Altezza z media globale ---
+81.128 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\10_59_43_output
+
+##### Analisi di 11_00_58_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 10-23-54
+Candidati dopo filtro/frame (min-mediana-max): 8-10-20 (min punti=10)
+Posizioni valide: 3563/3608 (98.75%)
+Assegnazioni rifiutate dal gate: 45
+Candidati ignorati: 1272
+Distanza assegnazione (mediana / 95° percentile): 0.995 / 4.640 mm
+Fish 0: 444/451 frame osservati
+Fish 1: 447/451 frame osservati
+Fish 2: 449/451 frame osservati
+Fish 3: 441/451 frame osservati
+Fish 4: 436/451 frame osservati
+Fish 5: 448/451 frame osservati
+Fish 6: 451/451 frame osservati
+Fish 7: 447/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_00_58_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 42.763 mm/s
+Fish 1: 44.187 mm/s
+Fish 2: 34.318 mm/s
+Fish 3: 34.465 mm/s
+Fish 4: 43.085 mm/s
+Fish 5: 38.822 mm/s
+Fish 6: 37.422 mm/s
+Fish 7: 39.871 mm/s
+Velocità media del gruppo: 39.367 mm/s
+Deviazione standard individuale: 3.826 mm/s
+Varianza della velocità collettiva: 74.341 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 643.189380 * t^1.536526
+Esponente alpha: 1.536526
+Coefficiente A = 10^intercetta: 643.189380
+Radice quadrata di A: 25.361179 mm/s
+R²: 0.981666
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 107.839 mm
+
+--- Altezza z media globale ---
+70.762 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_00_58_output
+
+##### Analisi di 11_02_08_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 12-24-52
+Candidati dopo filtro/frame (min-mediana-max): 7-11-18 (min punti=10)
+Posizioni valide: 3569/3608 (98.92%)
+Assegnazioni rifiutate dal gate: 38
+Candidati ignorati: 1426
+Distanza assegnazione (mediana / 95° percentile): 1.074 / 4.945 mm
+Fish 0: 451/451 frame osservati
+Fish 1: 451/451 frame osservati
+Fish 2: 446/451 frame osservati
+Fish 3: 445/451 frame osservati
+Fish 4: 448/451 frame osservati
+Fish 5: 448/451 frame osservati
+Fish 6: 438/451 frame osservati
+Fish 7: 442/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_02_08_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 46.665 mm/s
+Fish 1: 37.143 mm/s
+Fish 2: 41.213 mm/s
+Fish 3: 38.151 mm/s
+Fish 4: 44.505 mm/s
+Fish 5: 38.628 mm/s
+Fish 6: 47.687 mm/s
+Fish 7: 51.810 mm/s
+Velocità media del gruppo: 43.225 mm/s
+Deviazione standard individuale: 5.278 mm/s
+Varianza della velocità collettiva: 76.268 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1201.778860 * t^1.673522
+Esponente alpha: 1.673522
+Coefficiente A = 10^intercetta: 1201.778860
+Radice quadrata di A: 34.666682 mm/s
+R²: 0.998374
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 101.511 mm
+
+--- Altezza z media globale ---
+85.745 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_02_08_output
+
+##### Analisi di 11_03_22_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 10-22-44
+Candidati dopo filtro/frame (min-mediana-max): 7-10-16 (min punti=10)
+Posizioni valide: 3538/3608 (98.06%)
+Assegnazioni rifiutate dal gate: 65
+Candidati ignorati: 913
+Distanza assegnazione (mediana / 95° percentile): 1.223 / 5.347 mm
+Fish 0: 432/451 frame osservati
+Fish 1: 449/451 frame osservati
+Fish 2: 447/451 frame osservati
+Fish 3: 451/451 frame osservati
+Fish 4: 451/451 frame osservati
+Fish 5: 418/451 frame osservati
+Fish 6: 448/451 frame osservati
+Fish 7: 442/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_03_22_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 53.453 mm/s
+Fish 1: 46.625 mm/s
+Fish 2: 46.689 mm/s
+Fish 3: 44.732 mm/s
+Fish 4: 35.023 mm/s
+Fish 5: 46.308 mm/s
+Fish 6: 48.710 mm/s
+Fish 7: 58.813 mm/s
+Velocità media del gruppo: 47.544 mm/s
+Deviazione standard individuale: 6.877 mm/s
+Varianza della velocità collettiva: 112.495 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1219.451860 * t^1.626593
+Esponente alpha: 1.626593
+Coefficiente A = 10^intercetta: 1219.451860
+Radice quadrata di A: 34.920651 mm/s
+R²: 0.955847
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 123.668 mm
+
+--- Altezza z media globale ---
+75.297 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_03_22_output
+
+##### Analisi di 11_04_36_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 11-24-51
+Candidati dopo filtro/frame (min-mediana-max): 7-11-20 (min punti=10)
+Posizioni valide: 3535/3608 (97.98%)
+Assegnazioni rifiutate dal gate: 70
+Candidati ignorati: 1523
+Distanza assegnazione (mediana / 95° percentile): 1.253 / 5.524 mm
+Fish 0: 451/451 frame osservati
+Fish 1: 441/451 frame osservati
+Fish 2: 451/451 frame osservati
+Fish 3: 412/451 frame osservati
+Fish 4: 437/451 frame osservati
+Fish 5: 451/451 frame osservati
+Fish 6: 449/451 frame osservati
+Fish 7: 443/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_04_36_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 54.632 mm/s
+Fish 1: 72.018 mm/s
+Fish 2: 36.595 mm/s
+Fish 3: 52.499 mm/s
+Fish 4: 48.668 mm/s
+Fish 5: 43.845 mm/s
+Fish 6: 44.928 mm/s
+Fish 7: 56.682 mm/s
+Velocità media del gruppo: 51.233 mm/s
+Deviazione standard individuale: 10.624 mm/s
+Varianza della velocità collettiva: 115.397 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1663.621387 * t^1.821467
+Esponente alpha: 1.821467
+Coefficiente A = 10^intercetta: 1663.621387
+Radice quadrata di A: 40.787515 mm/s
+R²: 0.993526
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 106.830 mm
+
+--- Altezza z media globale ---
+84.739 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_04_36_output
+
+##### Analisi di 11_05_46_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 10-22-58
+Candidati dopo filtro/frame (min-mediana-max): 6-10-24 (min punti=10)
+Posizioni valide: 3541/3608 (98.14%)
+Assegnazioni rifiutate dal gate: 63
+Candidati ignorati: 1211
+Distanza assegnazione (mediana / 95° percentile): 1.269 / 5.798 mm
+Fish 0: 448/451 frame osservati
+Fish 1: 423/451 frame osservati
+Fish 2: 451/451 frame osservati
+Fish 3: 451/451 frame osservati
+Fish 4: 438/451 frame osservati
+Fish 5: 436/451 frame osservati
+Fish 6: 448/451 frame osservati
+Fish 7: 446/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_05_46_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 39.512 mm/s
+Fish 1: 51.258 mm/s
+Fish 2: 41.487 mm/s
+Fish 3: 36.534 mm/s
+Fish 4: 52.636 mm/s
+Fish 5: 57.165 mm/s
+Fish 6: 36.863 mm/s
+Fish 7: 43.646 mm/s
+Velocità media del gruppo: 44.888 mm/s
+Deviazione standard individuale: 7.815 mm/s
+Varianza della velocità collettiva: 106.995 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1430.790012 * t^1.613828
+Esponente alpha: 1.613828
+Coefficiente A = 10^intercetta: 1430.790012
+Radice quadrata di A: 37.825785 mm/s
+R²: 0.989911
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 108.488 mm
+
+--- Altezza z media globale ---
+68.373 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_05_46_output
+
+##### Analisi di 11_06_55_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 10-21-46
+Candidati dopo filtro/frame (min-mediana-max): 6-10-19 (min punti=10)
+Posizioni valide: 3454/3608 (95.73%)
+Assegnazioni rifiutate dal gate: 148
+Candidati ignorati: 1056
+Distanza assegnazione (mediana / 95° percentile): 1.204 / 5.626 mm
+Fish 0: 424/451 frame osservati
+Fish 1: 433/451 frame osservati
+Fish 2: 423/451 frame osservati
+Fish 3: 444/451 frame osservati
+Fish 4: 441/451 frame osservati
+Fish 5: 449/451 frame osservati
+Fish 6: 390/451 frame osservati
+Fish 7: 450/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_06_55_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 48.924 mm/s
+Fish 1: 69.949 mm/s
+Fish 2: 48.229 mm/s
+Fish 3: 37.001 mm/s
+Fish 4: 46.178 mm/s
+Fish 5: 59.566 mm/s
+Fish 6: 38.706 mm/s
+Fish 7: 44.721 mm/s
+Velocità media del gruppo: 49.159 mm/s
+Deviazione standard individuale: 10.870 mm/s
+Varianza della velocità collettiva: 124.408 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1264.006082 * t^1.978995
+Esponente alpha: 1.978995
+Coefficiente A = 10^intercetta: 1264.006082
+Radice quadrata di A: 35.552863 mm/s
+R²: 0.999385
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 104.662 mm
+
+--- Altezza z media globale ---
+77.032 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_06_55_output
+
+##### Analisi di 11_08_07_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 10-24-55
+Candidati dopo filtro/frame (min-mediana-max): 7-11-21 (min punti=10)
+Posizioni valide: 3580/3608 (99.22%)
+Assegnazioni rifiutate dal gate: 27
+Candidati ignorati: 1476
+Distanza assegnazione (mediana / 95° percentile): 1.150 / 5.028 mm
+Fish 0: 449/451 frame osservati
+Fish 1: 446/451 frame osservati
+Fish 2: 448/451 frame osservati
+Fish 3: 450/451 frame osservati
+Fish 4: 451/451 frame osservati
+Fish 5: 444/451 frame osservati
+Fish 6: 445/451 frame osservati
+Fish 7: 447/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_08_07_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 36.276 mm/s
+Fish 1: 38.136 mm/s
+Fish 2: 41.931 mm/s
+Fish 3: 38.260 mm/s
+Fish 4: 50.451 mm/s
+Fish 5: 52.162 mm/s
+Fish 6: 37.625 mm/s
+Fish 7: 39.683 mm/s
+Velocità media del gruppo: 41.816 mm/s
+Deviazione standard individuale: 6.102 mm/s
+Varianza della velocità collettiva: 93.611 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1561.440057 * t^1.629228
+Esponente alpha: 1.629228
+Coefficiente A = 10^intercetta: 1561.440057
+Radice quadrata di A: 39.515061 mm/s
+R²: 0.952199
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 98.317 mm
+
+--- Altezza z media globale ---
+61.949 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_08_07_output
+
+##### Analisi di 11_09_23_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 10-23-52
+Candidati dopo filtro/frame (min-mediana-max): 7-10-17 (min punti=10)
+Posizioni valide: 3504/3608 (97.12%)
+Assegnazioni rifiutate dal gate: 102
+Candidati ignorati: 1274
+Distanza assegnazione (mediana / 95° percentile): 1.293 / 7.043 mm
+Fish 0: 449/451 frame osservati
+Fish 1: 432/451 frame osservati
+Fish 2: 442/451 frame osservati
+Fish 3: 450/451 frame osservati
+Fish 4: 442/451 frame osservati
+Fish 5: 426/451 frame osservati
+Fish 6: 418/451 frame osservati
+Fish 7: 445/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_09_23_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 54.231 mm/s
+Fish 1: 47.926 mm/s
+Fish 2: 51.606 mm/s
+Fish 3: 43.980 mm/s
+Fish 4: 52.880 mm/s
+Fish 5: 46.503 mm/s
+Fish 6: 51.928 mm/s
+Fish 7: 38.542 mm/s
+Velocità media del gruppo: 48.450 mm/s
+Deviazione standard individuale: 5.309 mm/s
+Varianza della velocità collettiva: 151.621 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1325.894658 * t^1.810971
+Esponente alpha: 1.810971
+Coefficiente A = 10^intercetta: 1325.894658
+Radice quadrata di A: 36.412836 mm/s
+R²: 0.994533
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 105.330 mm
+
+--- Altezza z media globale ---
+77.765 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_09_23_output
+
+##### Analisi di 11_10_40_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 9-19-32
+Candidati dopo filtro/frame (min-mediana-max): 7-9-15 (min punti=10)
+Posizioni valide: 3592/3608 (99.56%)
+Assegnazioni rifiutate dal gate: 9
+Candidati ignorati: 658
+Distanza assegnazione (mediana / 95° percentile): 1.133 / 4.229 mm
+Fish 0: 451/451 frame osservati
+Fish 1: 450/451 frame osservati
+Fish 2: 450/451 frame osservati
+Fish 3: 449/451 frame osservati
+Fish 4: 448/451 frame osservati
+Fish 5: 449/451 frame osservati
+Fish 6: 444/451 frame osservati
+Fish 7: 451/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_10_40_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 54.547 mm/s
+Fish 1: 49.750 mm/s
+Fish 2: 53.590 mm/s
+Fish 3: 43.564 mm/s
+Fish 4: 52.998 mm/s
+Fish 5: 45.987 mm/s
+Fish 6: 40.401 mm/s
+Fish 7: 40.738 mm/s
+Velocità media del gruppo: 47.697 mm/s
+Deviazione standard individuale: 5.802 mm/s
+Varianza della velocità collettiva: 67.735 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1618.735501 * t^1.998915
+Esponente alpha: 1.998915
+Coefficiente A = 10^intercetta: 1618.735501
+Radice quadrata di A: 40.233512 mm/s
+R²: 0.984786
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 117.200 mm
+
+--- Altezza z media globale ---
+55.594 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_10_40_output
+
+##### Analisi di 11_11_55_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 10-21-38
+Candidati dopo filtro/frame (min-mediana-max): 7-10-16 (min punti=10)
+Posizioni valide: 3491/3608 (96.76%)
+Assegnazioni rifiutate dal gate: 98
+Candidati ignorati: 1003
+Distanza assegnazione (mediana / 95° percentile): 1.299 / 6.973 mm
+Fish 0: 451/451 frame osservati
+Fish 1: 425/451 frame osservati
+Fish 2: 404/451 frame osservati
+Fish 3: 449/451 frame osservati
+Fish 4: 424/451 frame osservati
+Fish 5: 451/451 frame osservati
+Fish 6: 451/451 frame osservati
+Fish 7: 436/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_11_55_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 45.866 mm/s
+Fish 1: 56.548 mm/s
+Fish 2: 51.583 mm/s
+Fish 3: 50.710 mm/s
+Fish 4: 58.299 mm/s
+Fish 5: 34.871 mm/s
+Fish 6: 37.491 mm/s
+Fish 7: 51.991 mm/s
+Velocità media del gruppo: 48.420 mm/s
+Deviazione standard individuale: 8.462 mm/s
+Varianza della velocità collettiva: 109.732 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1736.877984 * t^1.793180
+Esponente alpha: 1.793180
+Coefficiente A = 10^intercetta: 1736.877984
+Radice quadrata di A: 41.675868 mm/s
+R²: 0.994896
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 116.259 mm
+
+--- Altezza z media globale ---
+63.609 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_11_55_output
+
+##### Analisi di 11_13_07_ANALISI #####
+
+================ TRACKING DIAGNOSTICS ================
+Frame analizzati: 451
+Pesci richiesti: 8
+Componenti grezzi/frame (min-mediana-max): 10-21-40
+Candidati dopo filtro/frame (min-mediana-max): 7-10-18 (min punti=10)
+Posizioni valide: 3532/3608 (97.89%)
+Assegnazioni rifiutate dal gate: 73
+Candidati ignorati: 1103
+Distanza assegnazione (mediana / 95° percentile): 1.246 / 6.107 mm
+Fish 0: 446/451 frame osservati
+Fish 1: 447/451 frame osservati
+Fish 2: 446/451 frame osservati
+Fish 3: 448/451 frame osservati
+Fish 4: 446/451 frame osservati
+Fish 5: 438/451 frame osservati
+Fish 6: 432/451 frame osservati
+Fish 7: 429/451 frame osservati
+=======================================================
+
+
+================ RISULTATI GENERALI ================
+
+Cartella analizzata: various_heights\H11_ANALISI\11_13_07_ANALISI\recon
+Numero frame: 451
+Numero pesci: 8
+Tempo totale: 30.000 s
+
+--- Velocità media lungo il percorso per pesce ---
+Fish 0: 53.367 mm/s
+Fish 1: 43.902 mm/s
+Fish 2: 40.871 mm/s
+Fish 3: 36.802 mm/s
+Fish 4: 44.679 mm/s
+Fish 5: 52.145 mm/s
+Fish 6: 60.980 mm/s
+Fish 7: 50.385 mm/s
+Velocità media del gruppo: 47.891 mm/s
+Deviazione standard individuale: 7.784 mm/s
+Varianza della velocità collettiva: 120.747 (mm/s)^2
+
+--- Fit lineare del MSD in scala log-log ---
+MSD = 1495.416359 * t^1.514932
+Esponente alpha: 1.514932
+Coefficiente A = 10^intercetta: 1495.416359
+Radice quadrata di A: 38.670614 mm/s
+R²: 0.990527
+Intervallo fit: 0.067-2.400 s
+
+--- Distanza media tra pesci ---
+Distanza media totale: 102.388 mm
+
+--- Altezza z media globale ---
+55.688 mm
+
+Tutti i file sono stati salvati in: various_heights_results\H11_ANALISI_results\11_13_07_output
+(venv) PS C:\Users\mauro\Documents\Adriano Università\Lab2Maggi_Windows\trajectory_analysis> 

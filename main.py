@@ -1,7 +1,7 @@
 from pipeline import analyze_fish_trajectories
 
-input_recon_folder = "8_fish/12_49_49_ANALISI/recon"
-output_destination = "8_fish_analysis_output"
+input_recon_folder = r"various_heights\H11_ANALISI\10_20_25_ANALISI\recon"
+output_destination = r"various_heights\H11_ANALISI\10_20_25_ANALISI\results"
 number_of_fish = 8
 
 results = analyze_fish_trajectories(
@@ -11,7 +11,7 @@ results = analyze_fish_trajectories(
     grid_step=0.75,
     dt=1/15,
     tracking_mode="velocity",
-    make_video=True,
+    make_video=True,  # set to True to generate a video of the tracking results
     search_range=15.0,        # initial one-frame gate in mm; validate after diagnostics
     memory=15,                # maximum occlusion length tracked with internal prediction
     min_component_points=10,  # initial reconstruction-noise filter; validate after diagnostics

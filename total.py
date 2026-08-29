@@ -2,8 +2,8 @@ from pathlib import Path
 
 from pipeline import analyze_fish_trajectories
 
-input_root = Path("8_fish")
-output_destination = "8_fish_analysis_output"
+input_root = Path("various_heights\\H18_ANALISI")
+output_destination = Path("various_heights_results\\H18_ANALISI_results")
 number_of_fish = 8
 
 input_recon_folders = sorted(input_root.glob("*_ANALISI/recon"))
@@ -21,7 +21,7 @@ for input_recon_folder in input_recon_folders:
         grid_step=0.75,
         dt=1/15,
         tracking_mode="velocity",
-        make_video=True,
+        make_video=False,  # set to True to generate a video of the tracking results
         search_range=15.0,        # initial one-frame gate in mm; validate after diagnostics
         memory=15,                # maximum occlusion length tracked with internal prediction
         min_component_points=10,  # initial reconstruction-noise filter; validate after diagnostics

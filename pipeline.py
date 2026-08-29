@@ -118,12 +118,12 @@ def analyze_fish_trajectories(
     np.save(output_folder / "frame_files.npy", np.array(frame_files))
 
     # esportazione dei grafici 3d spaziali
-    collective_path = output_folder / "collective_trajectories.png"
+    collective_path = output_folder / "collective_trajectories.pdf"
     plot_collective_trajectories(trajectories, save_path=collective_path)
 
     single_paths = []
     for fish_idx in range(n_fish):
-        single_path = output_folder / f"fish_{fish_idx:02d}_trajectory.png"
+        single_path = output_folder / f"fish_{fish_idx:02d}_trajectory.pdf"
         plot_single_fish_trajectory(trajectories, fish_idx=fish_idx, save_path=single_path)
         single_paths.append(single_path)
 
@@ -132,69 +132,76 @@ def analyze_fish_trajectories(
     time_speed = frame_times[:-1]
     for fish_idx in range(n_fish):
         ax.plot(time_speed, velocity_results["speeds"][:, fish_idx], label=f"Fish {fish_idx}")
-    ax.set_title("velocità frame per frame")
-    ax.set_xlabel("tempo [s]")
-    ax.set_ylabel("velocità [mm/s]")
+    ax.set_title("Speed per frame")
+    ax.set_xlabel("time [s]")
+    ax.set_ylabel("speed [mm/s]")
     ax.legend(fontsize=8)
-    speed_plot_path = output_folder / "speeds_frame_by_frame.png"
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    speed_plot_path = output_folder / "speeds_frame_by_frame.pdf"
     fig.savefig(speed_plot_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
     positive = msd_results["lag_times"] > 0
-    ax.loglog(msd_results["lag_times"][positive], msd_results["msd_mean"][positive], label="MSD medio")
+    ax.loglog(msd_results["lag_times"][positive], msd_results["msd_mean"][positive], label="average MSD")
     if msd_results["fit_start_index"] is not None:
         fit_slice = slice(msd_results["fit_start_index"], msd_results["fit_end_index"] + 1)
         fit_values = 10 ** (msd_results["fit_intercept_log10"] + msd_results["fit_exponent"] * np.log10(msd_results["lag_times"][fit_slice]))
-        ax.loglog(msd_results["lag_times"][fit_slice], fit_values, "--", label=f"fit, alpha={msd_results['fit_exponent']:.2f}")
-    ax.set_title("MSD rispetto alla posizione iniziale")
-    ax.set_xlabel("tempo [s]")
-    ax.set_ylabel("MSD [mm²]")
+        ax.loglog(msd_results["lag_times"][fit_slice], fit_values, "--", label=f"power law, $\\alpha$={msd_results['fit_exponent']:.2f}")
+    ax.set_title("Mean Square Displacement (MSD)")
+    ax.set_xlabel("time [s]")
+    ax.set_ylabel("MSD [$\\mathrm{mm}^2$]")
+    ax.grid(True, which="both", ls="--", lw=0.5)
     ax.legend()
-    fig.savefig(output_folder / "mean_square_displacement.png", dpi=200, bbox_inches="tight")
+    fig.savefig(output_folder / "mean_square_displacement.pdf", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(frame_times, nearest_results["mean_nearest_neighbor_distance_per_frame"])
-    ax.set_title("Distanza media dal primo vicino")
-    ax.set_xlabel("tempo [s]")
-    ax.set_ylabel("distanza [mm]")
-    fig.savefig(output_folder / "mean_nearest_neighbor_distance.png", dpi=200, bbox_inches="tight")
+    ax.set_title("Mean distance to the nearest neighbor")
+    ax.set_xlabel("time [s]")
+    ax.set_ylabel("distance [mm]")
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    fig.savefig(output_folder / "mean_nearest_neighbor_distance.pdf", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
     if nearest_results["histogram_density"].size:
         ax.stairs(nearest_results["histogram_density"], nearest_results["histogram_edges"])
-    ax.set_title("Distribuzione della distanza dal primo vicino")
-    ax.set_xlabel("distanza [mm]")
-    ax.set_ylabel("densità di probabilità")
-    fig.savefig(output_folder / "nearest_neighbor_distance_histogram.png", dpi=200, bbox_inches="tight")
+    ax.set_title("Nearest neighbor distance distribution")
+    ax.set_xlabel("distance [mm]")
+    ax.set_ylabel("probability density")
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    fig.savefig(output_folder / "nearest_neighbor_distance_histogram.pdf", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
     if step_results["histogram_density"].size:
         ax.stairs(step_results["histogram_density"], step_results["histogram_edges"])
-    ax.set_title("Distribuzione dei passi spaziali")
-    ax.set_xlabel("passo [mm]")
-    ax.set_ylabel("densità di probabilità")
-    fig.savefig(output_folder / "step_length_histogram.png", dpi=200, bbox_inches="tight")
+    ax.set_title("Step length distribution")
+    ax.set_xlabel("step [mm]")
+    ax.set_ylabel("probability density")
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    fig.savefig(output_folder / "step_length_histogram.pdf", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(frame_times[:-1], polarization_results["polarization_magnitude"], color="black", linewidth=2, label="|P(t)|")
-    ax.set_title("Modulo della polarizzazione delle velocità")
-    ax.set_xlabel("tempo [s]")
-    ax.set_ylabel("|P(t)|")
+    ax.plot(frame_times[:-1], polarization_results["polarization_magnitude"], color="black", linewidth=2, label="$|P(t)|$")
+    ax.set_title("Velocity polarization intensity")
+    ax.set_xlabel("time [s]")
+    ax.set_ylabel("$|P(t)|$")
+    ax.grid(True, which="both", ls="--", lw=0.5)
     ax.legend()
-    fig.savefig(output_folder / "velocity_polarization.png", dpi=200, bbox_inches="tight")
+    fig.savefig(output_folder / "velocity_polarization.pdf", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(autocorrelation_results["lag_times"], autocorrelation_results["autocorrelation"])
-    ax.set_title("Autocorrelazione temporale delle velocità")
-    ax.set_xlabel("ritardo [s]")
-    ax.set_ylabel("Cv(tau) / Cv(0)")
-    fig.savefig(output_folder / "velocity_autocorrelation.png", dpi=200, bbox_inches="tight")
+    ax.set_title("Temporal autocorrelation of velocities")
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    ax.set_xlabel("lag time $\\tau$ [s]")
+    ax.set_ylabel("$\\frac{C_v(\\tau)}{C_v(0)}$")
+    fig.savefig(output_folder / "velocity_autocorrelation.pdf", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     semilog_mask = (
@@ -208,44 +215,49 @@ def analyze_fish_trajectories(
         autocorrelation_results["autocorrelation"][semilog_mask],
         "o-",
     )
-    ax.set_title("Autocorrelazione delle velocità in scala semilog")
-    ax.set_xlabel("ritardo [s]")
-    ax.set_ylabel("Cv(tau) / Cv(0)")
-    fig.savefig(output_folder / "velocity_autocorrelation_semilog.png", dpi=200, bbox_inches="tight")
+    ax.set_title("Temporal autocorrelation of velocities in semilog scale")
+    ax.set_xlabel("lag time $\\tau$ [s]")
+    ax.set_ylabel("$\\frac{C_v(\\tau)}{C_v(0)}$")
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    fig.savefig(output_folder / "velocity_autocorrelation_semilog.pdf", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(neighbor_correlation_results["bin_centers"], neighbor_correlation_results["mean_correlation"], "o-")
-    ax.set_title("Correlazione delle velocità tra primi vicini")
-    ax.set_xlabel("distanza [mm]")
-    ax.set_ylabel("correlazione direzionale")
-    fig.savefig(output_folder / "neighbor_velocity_correlation.png", dpi=200, bbox_inches="tight")
+    ax.set_title("Temporal correlation of velocities between nearest neighbors")
+    ax.set_xlabel("distance [mm]")
+    ax.set_ylabel("directional correlation")
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    fig.savefig(output_folder / "neighbor_velocity_correlation.pdf", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(9, 5))
     ax.plot(frame_times, distance_results["mean_pairwise_distance_per_frame"], linewidth=2)
-    ax.set_title("distanza media tra pesci frame per frame")
-    ax.set_xlabel("tempo [s]")
-    ax.set_ylabel("distanza media [mm]")
-    dist_plot_path = output_folder / "mean_pairwise_distance_per_frame.png"
+    ax.set_title("Mean pairwise distance between fish frame by frame")
+    ax.set_xlabel("time [s]")
+    ax.set_ylabel("mean distance [mm]")
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    dist_plot_path = output_folder / "mean_pairwise_distance_per_frame.pdf"
     fig.savefig(dist_plot_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(9, 5))
     ax.plot(frame_times, z_results["mean_z_per_frame"], linewidth=2)
-    ax.set_title("altezza media del gruppo")
-    ax.set_xlabel("tempo [s]")
-    ax.set_ylabel("z media [mm]")
-    z_plot_path = output_folder / "mean_z_per_frame.png"
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    ax.set_title("Mean height of the group")
+    ax.set_xlabel("time [s]")
+    ax.set_ylabel("mean z [mm]")
+    z_plot_path = output_folder / "mean_z_per_frame.pdf"
     fig.savefig(z_plot_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    zone_names = ["basso", "basso-medio", "alto-medio", "alto"]
+    zone_names = ["low", "low-medium", "medium-high", "high"]
     ax.bar(zone_names, z_zone_results["mean_fraction_per_zone"] * 100)
-    ax.set_title("percentuale media di tempo nelle fasce z")
-    ax.set_ylabel("tempo [%]")
-    z_zone_plot_path = output_folder / "z_zone_time_percentages.png"
+    ax.set_title("Mean percentage of time in z zones")
+    ax.set_ylabel("time [%]")
+    ax.grid(True, which="both", ls="--", lw=0.5)
+    z_zone_plot_path = output_folder / "z_zone_time_percentages.pdf"
     fig.savefig(z_zone_plot_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 

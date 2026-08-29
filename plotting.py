@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, FFMpegWriter, PillowWriter
 import os
 
+# to use ffmpeg for saving videos, specify the path to the ffmpeg executable
+plt.rcParams['animation.ffmpeg_path'] = r'C:\Users\mauro\tools\ffmpeg-9.0.1-essentials_build\bin\ffmpeg.exe'
+
 def set_axes_equal_3d(ax):
     """
     Imposta le stesse proporzioni per gli assi 3D in modo che il volume 

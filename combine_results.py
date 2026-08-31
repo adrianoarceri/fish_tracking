@@ -5,15 +5,17 @@ import numpy as np
 
 
 # Select one fish-count group at a time.
-INPUT_ROOT = Path("8_fish_analysis_output")
-OUTPUT_FOLDER = Path("combined_analysis_output")
-MSD_FIT_END_TIME = 1.5
+INPUT_ROOT = Path(r"various_heights_results\H18_ANALISI_results")  # Change this to the desired fish-count group folder
+OUTPUT_FOLDER = Path(r"various_heights_results\H18_ANALISI_results\combined_analysis_output") # Saves in a subfolder of the selected INPUT_ROOT
+MSD_FIT_END_TIME = 1.5 # Maximum lag time (in seconds) to use for fitting the mean square displacement (MSD) curve; change appropriately based on your data.
 
 
 plt.rcParams.update({
-    "font.family": "DejaVu Sans",
+    "text.usetex": True,
+    "font.family": "serif",
+    #"font.serif": ["Computer Modern Roman"],
     "axes.titlesize": 13,
-    "axes.titleweight": "semibold",
+    #"axes.titleweight": "semibold",
     "axes.labelsize": 11,
     "axes.grid": True,
     "grid.color": "#CBD5E1",
@@ -90,8 +92,8 @@ def plot_overlaid_autocorrelations(runs):
     ax.set_ylabel(r"$C_v(\tau) / C_v(0)$")
     style_axis(ax)
     if autocorrelations:
-        ax.legend(fontsize=8, ncol=2)
-    fig.savefig(OUTPUT_FOLDER / "velocity_autocorrelation_overlaid.png", dpi=250, bbox_inches="tight")
+        ax.legend(bbox_to_anchor=(1.04, 1), loc="upper left", fontsize=8, ncol=2)
+    fig.savefig(OUTPUT_FOLDER / "velocity_autocorrelation_overlaid.pdf", dpi=250, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -126,7 +128,7 @@ def plot_mean_autocorrelation(runs):
     ax.set_xlabel(r"Lag time [$\mathrm{s}$]")
     ax.set_ylabel(r"Mean $C_v(\tau) / C_v(0)$")
     style_axis(ax)
-    fig.savefig(OUTPUT_FOLDER / "velocity_autocorrelation_mean.png", dpi=250, bbox_inches="tight")
+    fig.savefig(OUTPUT_FOLDER / "velocity_autocorrelation_mean.pdf", dpi=250, bbox_inches="tight")
     plt.close(fig)
     np.save(OUTPUT_FOLDER / "velocity_autocorrelation_mean.npy", np.vstack((mean_lags, mean_values)))
 
@@ -158,28 +160,47 @@ def plot_mean_msd_and_fit(runs):
 
     fit_valid = valid & (mean_lags > 0) & (mean_lags <= MSD_FIT_END_TIME) & (mean_msd > 0)
     if np.count_nonzero(fit_valid) >= 3:
-        coefficients = np.polyfit(np.log10(mean_lags[fit_valid]), np.log10(mean_msd[fit_valid]), 1)
+        coefficients, cov_matrix = np.polyfit(
+            np.log10(mean_lags[fit_valid]), 
+            np.log10(mean_msd[fit_valid]), 
+            1, 
+            cov=True
+        )
         alpha, intercept = coefficients
+        alpha_err = np.sqrt(cov_matrix[0, 0])
+        intercept_err = np.sqrt(cov_matrix[1, 1])
+        
         fitted_values = 10 ** (intercept + alpha * np.log10(mean_lags[fit_valid]))
         residual = np.sum((np.log10(mean_msd[fit_valid]) - np.log10(fitted_values)) ** 2)
         total = np.sum((np.log10(mean_msd[fit_valid]) - np.mean(np.log10(mean_msd[fit_valid]))) ** 2)
         r_squared = 1 - residual / total if total > 0 else 1.0
+        
         coefficient_a = 10 ** intercept
+        a_err = coefficient_a * np.log(10) * intercept_err
     else:
-        alpha = coefficient_a = r_squared = np.nan
+        alpha = alpha_err = coefficient_a = a_err = r_squared = np.nan
         fitted_values = np.array([])
 
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.loglog(mean_lags[valid], mean_msd[valid], color=COLORS[0], linewidth=2.4, label=r"Mean $\mathrm{MSD}$")
+    
     if fitted_values.size:
+        exponent = int(np.floor(np.log10(coefficient_a)))
+        mantissa = coefficient_a / 10**exponent
+        mantissa_err = a_err / 10**exponent
+        
+        a_str = fr"({mantissa:.2f} \pm {mantissa_err:.2f}) \times 10^{{{exponent}}}"
+        alpha_str = fr"{alpha:.3f} \pm {alpha_err:.3f}"
+        
         ax.loglog(mean_lags[fit_valid], fitted_values, "--", color=COLORS[1], linewidth=1.8,
-                  label=fr"Fit ($A={coefficient_a:.3g}$, $\alpha={alpha:.3f}$, $R^2={r_squared:.3f}$)")
+                  label=fr"Fit ($A = {a_str}$, $\alpha = {alpha_str}$, $R^2={r_squared:.3f}$)")
+                  
     ax.set_title(fr"Mean square displacement, fit up to {MSD_FIT_END_TIME:g} s")
     ax.set_xlabel(r"Lag time [$\mathrm{s}$]")
     ax.set_ylabel(r"Mean $\mathrm{MSD}$ [$\mathrm{mm^2}$]")
     style_axis(ax)
-    ax.legend()
-    fig.savefig(OUTPUT_FOLDER / "mean_msd_with_fit.png", dpi=250, bbox_inches="tight")
+    ax.legend(fontsize=8, ncol=2)
+    fig.savefig(OUTPUT_FOLDER / "mean_msd_with_fit.pdf", dpi=250, bbox_inches="tight")
     plt.close(fig)
 
     np.save(OUTPUT_FOLDER / "mean_msd_lag_times.npy", mean_lags)
@@ -274,7 +295,7 @@ def plot_per_run_time_series(runs, filename, title, ylabel, output_name, color_o
     ax.set_xlabel(r"Time [$\mathrm{s}$]")
     ax.set_ylabel(ylabel)
     style_axis(ax)
-    ax.legend(fontsize=7, ncol=2)
+    ax.legend(bbox_to_anchor=(1.04, 1), loc="upper left", fontsize=7, ncol=2)
     fig.savefig(OUTPUT_FOLDER / output_name, dpi=250, bbox_inches="tight")
     plt.close(fig)
 
@@ -301,7 +322,7 @@ def main():
         "step_lengths.npy",
         "Pooled step-length distribution",
         r"Step length [$\mathrm{mm}$]",
-        "step_length_distribution_pooled.png",
+        "step_length_distribution_pooled.pdf",
         COLORS[3],
     )
     plot_pooled_histogram(
@@ -309,7 +330,7 @@ def main():
         "nearest_neighbor_distances.npy",
         "Pooled nearest-neighbor distance distribution",
         r"Nearest-neighbor distance [$\mathrm{mm}$]",
-        "nearest_neighbor_distance_distribution_pooled.png",
+        "nearest_neighbor_distance_distribution_pooled.pdf",
         COLORS[2],
     )
     plot_per_run_time_series(
@@ -317,14 +338,14 @@ def main():
         "mean_speed_per_frame.npy",
         "Mean speed per run",
         r"Mean speed [$\mathrm{mm\,s^{-1}}$]",
-        "mean_speed_per_run.png",
+        "mean_speed_per_run.pdf",
     )
     plot_per_run_time_series(
         runs,
         "mean_z_per_frame.npy",
         "Mean z-position per run",
         r"Mean $z$-position [$\mathrm{mm}$]",
-        "mean_z_per_run.png",
+        "mean_z_per_run.pdf",
         1,
     )
     plot_per_run_time_series(
@@ -332,7 +353,7 @@ def main():
         "mean_pairwise_distance_per_frame.npy",
         "Mean pairwise distance per run",
         r"Mean distance [$\mathrm{mm}$]",
-        "mean_pairwise_distance_per_run.png",
+        "mean_pairwise_distance_per_run.pdf",
         2,
     )
     plot_per_run_time_series(
@@ -340,7 +361,7 @@ def main():
         "mean_nearest_neighbor_distance_per_frame.npy",
         "Mean nearest-neighbor distance per run",
         r"Nearest-neighbor distance [$\mathrm{mm}$]",
-        "mean_nearest_neighbor_distance_per_run.png",
+        "mean_nearest_neighbor_distance_per_run.pdf",
         3,
     )
     print(f"Combined plots saved in: {OUTPUT_FOLDER}")
